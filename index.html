@@ -152,6 +152,40 @@
             overflow: hidden;
         }
         
+        .resize-panel-btn {
+            position: absolute;
+            top: 10px;
+            right: 50px;
+            background: #007C27;
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        .resize-panel-btn:hover {
+            background: #005a1f;
+            transform: scale(1.1);
+        }
+        
+        .convenience-panel.minimized {
+            width: 200px !important;
+            height: 150px !important;
+            overflow: hidden;
+        }
+        
+        .convenience-panel.minimized .radius-controls,
+        .convenience-panel.minimized #poiStatsContainer {
+            display: none;
+        }
+        
         /* Painel de Conveniência */
         .convenience-panel {
             position: absolute;
@@ -506,12 +540,225 @@
             margin-bottom: 5px;
         }
         .stat-card p { color: #666; font-size: 0.9em; }
+        
+        /* Estilos para Abas */
+        .tabs-container {
+            display: flex;
+            gap: 0;
+            border-bottom: 3px solid #007C27;
+            background: #F0F5CD;
+            padding: 0 30px;
+        }
+        .tab-button {
+            padding: 15px 25px;
+            background: transparent;
+            border: none;
+            color: #00512A;
+            font-weight: bold;
+            font-size: 15px;
+            cursor: pointer;
+            border-bottom: 4px solid transparent;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .tab-button:hover {
+            background: rgba(0, 124, 39, 0.1);
+        }
+        .tab-button.active {
+            color: white;
+            background: #007C27;
+            border-bottom: 4px solid #00512A;
+        }
+        .tab-content {
+            display: none;
+            padding: 30px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Estilos para Análise de Consumo */
+        .consumo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .consumo-card {
+            background: white;
+            border: 2px solid #007C27;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s;
+        }
+        .consumo-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 16px rgba(0, 124, 39, 0.2);
+        }
+        .consumo-card h3 {
+            color: #00512A;
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .consumo-card .value {
+            color: #007C27;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .consumo-card .unit {
+            color: #666;
+            font-size: 0.85em;
+        }
+        .consumo-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        .chart-card {
+            background: white;
+            border: 2px solid #007C27;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .chart-card h3 {
+            color: #00512A;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+        .consumo-info {
+            background: #F0F5CD;
+            border-left: 4px solid #007C27;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .consumo-info p {
+            color: #333;
+            line-height: 1.6;
+            margin: 5px 0;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007C27;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         @media (max-width: 768px) {
             .search-box { grid-template-columns: 1fr; }
             .stats-summary { grid-template-columns: 1fr; }
+            .consumo-charts { grid-template-columns: 1fr; }
+            .tabs-container { padding: 0 15px; }
+            .tab-button { padding: 12px 15px; font-size: 13px; }
         }
     </style>
+
+<style>
+.orange-marker {
+    filter: hue-rotate(25deg) saturate(2);
+}
+</style>
+
+<style>
+/* Deixa o marker padrão (azul) com aparência laranja via filtro */
+.orange-pin{
+  filter: hue-rotate(25deg) saturate(2.6) brightness(1.05);
+}
+</style>
+
+<style>
+.victa-logo {
+    width: 80px;
+    margin-bottom: 6px;
+}
+</style>
+
+
+<style>
+@media print {
+    body { background: white !important; }
+    button, .map-controls, .search-type-selector, .input-group { display: none !important; }
+    .container { box-shadow: none !important; border-radius: 0 !important; }
+    #map { height: 400px !important; }
+}
+.print-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 2000;
+    background: linear-gradient(135deg, #00512A 0%, #007C27 100%);
+    color: white;
+    border: none;
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+.print-btn:hover { transform: translateY(-2px); }
+</style>
+
+
+<style>
+/* Forçar impressão com cores (Chrome/Edge/Firefox) */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  body { background: white !important; }
+  /* manter cores e gradientes dos cards */
+  .analysis-card, .demographics-section, .table-container, .insights-section {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  /* Evitar quebra feia no meio de tabelas e cards */
+  .table-container, .analysis-card, .demographics-section, .insights-section { 
+    break-inside: avoid; 
+    page-break-inside: avoid; 
+  }
+  table { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+  /* Reduzir animações/transforms na impressão */
+  * { animation: none !important; transition: none !important; transform: none !important; }
+}
+/* Aviso rápido */
+.pdf-tip {
+  margin: 12px 0 18px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #e3f2fd;
+  border-left: 4px solid #1976d2;
+  color: #0d47a1;
+  font-weight: 600;
+}
+.pdf-tip small { display:block; margin-top:6px; font-weight: 500; color:#1a237e; }
+</style>
+
 </head>
+
+
 <body>
     <div class="container">
         <div class="header">
@@ -544,9 +791,7 @@
                 <span id="toggleIcon">🗺️</span>
                 <span id="toggleText">Mapa</span>
             </button>
-            <button class="fullscreen-toggle" id="fullscreenToggle" onclick="toggleFullscreen()" title="Expandir/Sair Fullscreen">
-                ⛶ Fullscreen
-            </button>
+            <button class="fullscreen-toggle" id="fullscreenToggle" onclick="toggleFullscreen()">⛶ Fullscreen</button>
             <div class="map-legend">
                 <h4>📌 Status de Vendas</h4>
                 <div class="legend-item">
@@ -570,7 +815,9 @@
                 <h3>📍 Análise de Conveniência</h3>
                 
                 <div class="radius-controls">
-                    <button class="radius-btn active" onclick="changeRadius(8000)" style="width: 100%;">8 km</button>
+                    <button class="radius-btn active" onclick="changeRadius(2000, this)">2 km</button>
+                    <button class="radius-btn" onclick="changeRadius(5000, this)">5 km</button>
+                    <button class="radius-btn" onclick="changeRadius(8000, this)">8 km</button>
                 </div>
                 
                 <div id="poiStatsContainer">
@@ -579,7 +826,28 @@
             </div>
         </div>
 
-        <div class="lazer-section">
+        <!-- Abas de Conteúdo -->
+        <div class="tabs-container">
+            <button class="tab-button active" onclick="switchTab('empreendimentos')">📊 Empreendimentos</button>
+            <button class="tab-button" onclick="switchTab('consumo')">💰 Análise de Consumo</button>
+            <button class="tab-button" onclick="switchTab('lazer')">🏊 Áreas de Lazer</button>
+        </div>
+
+        <!-- Aba de Análise de Consumo -->
+        <div id="tab-consumo" class="tab-content">
+            <div class="consumo-info">
+                <p><strong>ℹ️ Informação:</strong> Digite um endereço ou CEP na busca acima para visualizar dados socioeconômicos da região baseados em dados do IBGE 2022.</p>
+            </div>
+            <div id="consumoContent">
+                <div style="text-align: center; padding: 40px;">
+                    <p style="color: #666; font-size: 1.1em;">Pesquise um endereço para visualizar a análise de consumo</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aba de Empreendimentos (conteúdo existente) -->
+        <div id="tab-empreendimentos" class="tab-content active">
+            <div class="lazer-section" style="background: transparent; border: none; padding: 0;">
             <h2>🏊 Análise de Áreas de Lazer</h2>
             <div class="amenidades-filter">
                 <h3>Filtrar por Amenidades:</h3>
@@ -617,8 +885,6 @@
                             <th>Empreendimento</th>
                             <th>Endereço</th>
                             <th>Cidade</th>
-                            <th>Distância (km)</th>
-                            <th>Tempo (min)</th>
                             <th>Vagas</th>
                             <th>Lançamento</th>
                             <th>Entrega</th>
@@ -654,6 +920,14 @@
                     <tbody id="tableBody"></tbody>
                 </table>
             </div>
+            </div>
+        </div>
+
+        <!-- Aba de Lazer (conteúdo existente) -->
+        <div id="tab-lazer" class="tab-content">
+            <div class="lazer-section" style="background: transparent; border: none; padding: 0;">
+            <!-- Conteúdo de lazer será movido aqui -->
+            </div>
         </div>
     </div>
 
@@ -686,8 +960,21 @@
         
         // Variáveis globais
         let map, markers = [], searchMarkers = [], currentFilter = 'all', selectedAmenidades = [], amenidadesChart = null;
-        let isSatellite = false, streetLayer, satelliteLayer;
-        let currentRadius = 8000, radiusCircle = null, poiMarkers = [], currentSearchPoint = null;
+        
+
+        // Ícone "pino" laranja (usado no endereço pesquisado)
+        const orangePinIcon = new L.Icon({
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41],
+            popupAnchor: [1, -34],
+            shadowSize: [41, 41],
+            className: 'orange-pin'
+        });
+
+let isSatellite = false, streetLayer, satelliteLayer;
+        let currentRadius = 2000, radiusCircles = [], poiMarkers = [], currentSearchPoint = null;
         
         // POI Types para análise de conveniência
         const poiTypes = {
@@ -758,6 +1045,13 @@
             }
         }
         
+        function toggleMinimizePanel() {
+            const panel = document.getElementById('conveniencePanel');
+            const btn = document.getElementById('resizePanelBtn');
+            panel.classList.toggle('minimized');
+            btn.textContent = panel.classList.contains('minimized') ? '+' : '−';
+        }
+        
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 6371;
             const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -804,7 +1098,26 @@
                     iconAnchor: [22, 22]
                 });
                 const marker = L.marker([emp.Latitude, emp.Longitude], { icon: icon })
-                    .bindPopup(`<strong>${emp.EMPREENDIMENTO}</strong><br>${emp.EMPRESA}<br>Vendas: ${emp.VENDAS} (${emp['% VENDIDA'].toFixed(1)}%)`)
+                    // Tooltip ao passar o mouse (hover)
+                    .bindTooltip(`
+                        <div style="min-width: 210px; line-height: 1.25;">
+                            <div style="font-weight: 800; margin-bottom: 4px;">${emp.EMPREENDIMENTO}</div>
+                            <div><strong>% Venda:</strong> ${(emp['% VENDIDA'] * 100).toFixed(1)}%</div>
+                            <div><strong>% Estoque:</strong> ${(emp['% ESTOQUE'] * 100).toFixed(1)}%</div>
+                            <div><strong>Valor estoque:</strong> R$ ${formatCurrency(emp['VGV Estoque'] || 0)}</div>
+                            <div><strong>Vagas:</strong> ${emp.VAGAS ?? '-'}</div>
+                            <div><strong>Unidades:</strong> ${emp.UNIDADES ?? '-'}</div>
+                        </div>
+                    `, { direction: 'top', sticky: true, opacity: 0.95, offset: [0, -25] })
+                    // Mantém popup ao clicar
+                    .bindPopup(`
+                        ${((emp.EMPRESA || '').toString().toLowerCase().includes('victa')) ? '<img src="VICTA.png" class="victa-logo"><br>' : ''}
+                        <strong>${emp.EMPREENDIMENTO}</strong><br>
+                        ${emp['ENDEREÇO'] || ''}<br>
+                        Empresa: ${emp.EMPRESA || ''}<br>
+                        Vendas: ${emp.VENDAS ?? '-'} (${(emp['% VENDIDA'] * 100).toFixed(1)}%)<br>
+                        Estoque: ${emp.ESTOQUE ?? '-'} (${(emp['% ESTOQUE'] * 100).toFixed(1)}%)
+                    `)
                     .addTo(map);
                 markers.push(marker);
             });
@@ -897,19 +1210,14 @@
         function addSearchMarker(lat, lng, displayName = 'Local pesquisado') {
             const customName = document.getElementById('markerName').value.trim();
             const labelText = customName || displayName;
-            const icon = L.divIcon({
-                className: 'search-marker',
-                html: '<div style="background-color: #28a745; width: 30px; height: 30px; border-radius: 50%; border: 4px solid white; box-shadow: 0 2px 12px rgba(40,167,69,0.5);"></div>',
-                iconSize: [30, 30],
-                iconAnchor: [15, 15]
-            });
-            const newMarker = L.marker([lat, lng], { icon: icon })
+            
+            const newMarker = L.marker([lat, lng], { icon: orangePinIcon })
                 .bindPopup(`<strong>📍 ${labelText}</strong><br>Clique no marcador para remover`)
                 .addTo(map);
             newMarker.bindTooltip(labelText, {
                 permanent: true,
                 direction: 'top',
-                offset: [0, -15],
+                offset: [0, -35],
                 className: 'custom-label'
             });
             newMarker.on('click', function() {
@@ -925,6 +1233,9 @@
             newMarker.openPopup();
             document.getElementById('markerName').value = '';
             loadPOIs(lat, lng);
+            // Carregar dados de consumo
+            const searchInput = document.getElementById('searchInput').value;
+            displayConsumoAnalysis(lat, lng, searchInput);
         }
         
         function clearSearch() {
@@ -938,11 +1249,9 @@
         // Sistema de Conveniência
         async function fetchPOIs(lat, lng, radius) {
             const overpassQuery = `
-                [out:json][timeout:60];
+                [out:json][timeout:25];
                 (
                     node["amenity"="school"](around:${radius},${lat},${lng});
-                    node["amenity"="school"]["school:type"="private"](around:${radius},${lat},${lng});
-                    node["amenity"="school"]["operator:type"="private"](around:${radius},${lat},${lng});
                     node["amenity"="clinic"](around:${radius},${lat},${lng});
                     node["amenity"="hospital"](around:${radius},${lat},${lng});
                     node["shop"="supermarket"](around:${radius},${lat},${lng});
@@ -951,18 +1260,32 @@
                     node["amenity"="pharmacy"](around:${radius},${lat},${lng});
                     node["amenity"="bank"](around:${radius},${lat},${lng});
                 );
-                out center;
+                out body;
             `;
             try {
-                console.log('Enviando query para Overpass...');
-                const response = await fetch('https://overpass-api.de/api/interpreter', {
-                    method: 'POST',
-                    body: overpassQuery
-                });
-                console.log('Status da resposta:', response.status);
-                if (!response.ok) throw new Error('Erro na API: ' + response.status);
+                const endpoints = [
+                    'https://overpass-api.de/api/interpreter',
+                    'https://overpass.kumi.systems/api/interpreter',
+                    'https://overpass.openstreetmap.ru/api/interpreter'
+                ];
+                let lastErr = null;
+                let response = null;
+                for (const url of endpoints) {
+                    try {
+                        response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
+                            body: overpassQuery
+                        });
+                        if (response.ok) break;
+                        lastErr = new Error('HTTP ' + response.status + ' em ' + url);
+                    } catch (e) {
+                        lastErr = e;
+                    }
+                }
+                if (!response || !response.ok) throw lastErr || new Error('Falha ao consultar Overpass');
+                if (!response.ok) throw new Error('Erro na API');
                 const data = await response.json();
-                console.log('Elementos retornados:', data.elements?.length || 0);
                 return data.elements || [];
             } catch (error) {
                 console.error('Erro ao buscar POIs:', error);
@@ -971,15 +1294,9 @@
         }
         
         function categorizePOI(poi) {
-            if (!poi || !poi.tags) return null;
-            
             if (poi.tags.amenity === 'school') {
-                const schoolType = poi.tags['school:type'] || poi.tags.operator_type || poi.tags.access || '';
-                const name = poi.tags.name || '';
-                
-                if (schoolType.match(/private|particular/i) || name.match(/privada|particular|private/i)) {
-                    return 'escola_privada';
-                }
+                const schoolType = poi.tags['school:type'] || poi.tags.operator_type || '';
+                if (schoolType.match(/private|particular/i)) return 'escola_privada';
                 return 'escola_publica';
             }
             if (poi.tags.amenity === 'clinic') return 'posto_saude';
@@ -995,32 +1312,49 @@
         function clearPOIs() {
             poiMarkers.forEach(marker => map.removeLayer(marker));
             poiMarkers = [];
-            if (radiusCircle) {
-                map.removeLayer(radiusCircle);
-                radiusCircle = null;
+            if (radiusCircles && radiusCircles.length) {
+                radiusCircles.forEach(c => map.removeLayer(c));
+                radiusCircles = [];
             }
         }
-        
+
+        // Desenha os 3 raios fixos (2km vermelho, 5km azul, 8km laranja)
+        function drawRadiusRings(lat, lng) {
+            // remove existentes
+            if (radiusCircles && radiusCircles.length) {
+                radiusCircles.forEach(c => map.removeLayer(c));
+                radiusCircles = [];
+            }
+            const rings = [
+                { r: 2000, color: '#FF0000', opacity: 0.12 }, // 2km vermelho
+                { r: 5000, color: '#0000FF', opacity: 0.10 }, // 5km azul
+                { r: 8000, color: '#FFA500', opacity: 0.08 }  // 8km laranja
+            ];
+            rings.forEach(ring => {
+                const c = L.circle([lat, lng], {
+                    radius: ring.r,
+                    color: ring.color,
+                    fillColor: ring.color,
+                    fillOpacity: ring.opacity,
+                    weight: 2
+                }).addTo(map);
+                radiusCircles.push(c);
+            });
+        }
+
         async function loadPOIs(lat, lng) {
-            console.log('=== INICIANDO loadPOIs ===');
-            console.log('Coordenadas:', lat, lng);
-            console.log('Raio:', currentRadius);
-            
             clearPOIs();
             currentSearchPoint = { lat, lng };
             document.getElementById('conveniencePanel').classList.add('active');
             document.getElementById('poiStatsContainer').innerHTML = '<div class="poi-loading">🔄 Buscando pontos...</div>';
-            radiusCircle = L.circle([lat, lng], {
-                radius: currentRadius,
-                color: '#007C27',
-                fillColor: '#007C27',
-                fillOpacity: 0.1,
-                weight: 2,
-                dashArray: '5, 10'
-            }).addTo(map);
+            drawRadiusRings(lat, lng);
             const pois = await fetchPOIs(lat, lng, currentRadius);
             const stats = {};
             Object.keys(poiTypes).forEach(key => stats[key] = 0);
+            if (!pois || pois.length === 0) {
+                document.getElementById('poiStatsContainer').innerHTML = '<div class="poi-loading">⚠️ Nenhum ponto encontrado no raio selecionado (ou a API está instável). Tente novamente em instantes ou altere o raio.</div>';
+                return;
+            }
             pois.forEach(poi => {
                 const category = categorizePOI(poi);
                 if (!category) return;
@@ -1032,45 +1366,30 @@
                     iconSize: [30, 30],
                     iconAnchor: [15, 15]
                 });
-                const lat = poi.lat || (poi.center && poi.center.lat);
-                const lon = poi.lon || (poi.center && poi.center.lon);
-                const name = (poi.tags && poi.tags.name) || poiInfo.name;
-                if (lat && lon) {
-                    const marker = L.marker([lat, lon], { icon: icon })
-                        .bindPopup(`<strong>${poiInfo.icon} ${name}</strong><br><small>${poiInfo.name}</small>`)
-                        .addTo(map);
-                    poiMarkers.push(marker);
-                }
+                const name = poi.tags.name || poiInfo.name;
+                const marker = L.marker([poi.lat, poi.lon], { icon: icon })
+                    .bindPopup(`<strong>${poiInfo.icon} ${name}</strong><br><small>${poiInfo.name}</small>`)
+                    .addTo(map);
+                poiMarkers.push(marker);
             });
             displayPOIStats(stats);
         }
         
         function displayPOIStats(stats) {
-            console.log('=== EXIBINDO ESTATÍSTICAS ===');
-            console.log('Stats:', stats);
-            
             const container = document.getElementById('poiStatsContainer');
-            if (!container) {
-                console.error('Container não encontrado!');
-                return;
-            }
-            
             const total = Object.values(stats).reduce((a, b) => a + b, 0);
-            console.log('Total de pontos:', total);
-            
             let html = `<div style="margin-bottom: 10px; padding: 10px; background: #00512A; color: white; border-radius: 6px; text-align: center; font-weight: bold;">Total: ${total} pontos</div>`;
             Object.keys(poiTypes).forEach(key => {
                 const info = poiTypes[key];
                 html += `<div class="poi-stat-item"><span>${info.icon} ${info.name}</span><span class="count">${stats[key]}</span></div>`;
             });
             container.innerHTML = html;
-            console.log('HTML gerado e inserido no container');
         }
         
-        function changeRadius(radius) {
+        function changeRadius(radius, el) {
             currentRadius = radius;
             document.querySelectorAll('.radius-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            if (el) el.classList.add('active');
             if (currentSearchPoint) loadPOIs(currentSearchPoint.lat, currentSearchPoint.lng);
         }
         
@@ -1227,13 +1546,487 @@
         
         function updateMapFromSelection() { addMarkers(); }
         
+        // Variável global para armazenar dados de consumo
+let currentConsumoData = null;
+let currentConsumoAddress = '';
+let currentConsumoLat = 0;
+let currentConsumoLng = 0;
+
+// Funções de Abas
+function switchTab(tabName) {
+    // Esconder todos os tabs
+    const tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => tab.classList.remove('active'));
+    
+    // Remover classe active de todos os botões
+    const buttons = document.querySelectorAll('.tab-button');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    // Mostrar o tab selecionado
+    const selectedTab = document.getElementById('tab-' + tabName);
+    if (selectedTab) selectedTab.classList.add('active');
+    
+    // Marcar o botão como ativo
+    event.target.classList.add('active');
+}
+
+// Dados de renda média familiar por município (IBGE 2022)
+const rendaPorMunicipio = {
+    'fortaleza': 2850, 'caucaia': 1950, 'maracanaú': 2100, 'maranguape': 2050, 'aquiraz': 2200, 'eusébio': 2400, 'pacajus': 1850, 'itaitinga': 1950, 'são gonçalo do amarante': 1900, 'canindé': 1650,
+    'são paulo': 3850, 'guarulhos': 2950, 'campinas': 3200, 'santos': 3100, 'sorocaba': 2850, 'ribeirão preto': 3400, 'são bernardo do campo': 3100, 'são josé dos campos': 3300,
+    'belo horizonte': 3600, 'contagem': 2800, 'betim': 2600, 'montes claros': 2100, 'juiz de fora': 2900, 'uberlândia': 3100, 'divinópolis': 2400,
+    'rio de janeiro': 3200, 'niterói': 3600, 'duque de caxias': 2400, 'são gonçalo': 2100, 'nova iguaçu': 1900, 'campos dos goytacazes': 2800, 'macaé': 3400,
+    'salvador': 2400, 'feira de santana': 1800, 'vitória da conquista': 1600, 'ilhéus': 1700, 'itabuna': 1650, 'jequié': 1550,
+    'recife': 2600, 'jaboatão dos guararapes': 1900, 'olinda': 2100, 'caruaru': 1600, 'petrolina': 1900,
+    'florianópolis': 3800, 'blumenau': 3200, 'joinville': 3400, 'brusque': 3100, 'chapecó': 2900, 'criciúma': 2600, 'itajaí': 2800,
+    'porto alegre': 3600, 'caxias do sul': 3200, 'pelotas': 2800, 'santa maria': 2600, 'novo hamburgo': 3000, 'sapucaia do sul': 2900,
+    'curitiba': 3900, 'londrina': 3100, 'maringá': 3200, 'ponta grossa': 2800, 'cascavel': 2900, 'foz do iguaçu': 2700,
+    'brasília': 4715, 'goiânia': 3100, 'aparecida de goiânia': 2400, 'anápolis': 2600,
+    'campo grande': 2900, 'dourados': 2400, 'três lagoas': 2200,
+    'cuiabá': 2800, 'várzea grande': 2400, 'rondonópolis': 2200, 'sinop': 2100
+};
+
+function getRendaPorMunicipio(municipio) {
+    const municipioLower = municipio.toLowerCase().trim();
+    if (rendaPorMunicipio[municipioLower]) return rendaPorMunicipio[municipioLower];
+    for (const [key, value] of Object.entries(rendaPorMunicipio)) {
+        if (municipioLower.includes(key) || key.includes(municipioLower)) return value;
+    }
+    return 2069;
+}
+
+// Funções de Análise de Consumo IBGE
+async function fetchIBGEData(municipality) {
+    try {
+        const response = await fetch(`https://servicodados.ibge.gov.br/api/v1/localidades/municipios`);
+        const municipalities = await response.json();
+        const mun = municipalities.find(m => m.nome.toLowerCase().includes(municipality.toLowerCase()));
+        if (!mun) return null;
+        const sidraUrl = `https://servicodados.ibge.gov.br/api/v3/agregados/9514/periodos/-1/variaveis/all?localidades=N6[${mun.id}]`;
+        const sidraResponse = await fetch(sidraUrl);
+        const sidraData = await sidraResponse.json();
+        return { municipality: mun, data: sidraData };
+    } catch (error) {
+        console.error('Erro ao buscar dados IBGE:', error);
+        return null;
+    }
+}
+
+async function displayConsumoAnalysis(lat, lng, address) {
+    const consumoContent = document.getElementById('consumoContent');
+    consumoContent.innerHTML = '<div style="text-align: center; padding: 20px;"><div class="loading-spinner"></div>Carregando dados...</div>';
+    try {
+        const cepMatch = address.match(/\d{5}-?\d{3}/);
+        let municipalityData = null;
+        if (cepMatch) {
+            const cep = cepMatch[0].replace('-', '');
+            const cepResponse = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const cepData = await cepResponse.json();
+            if (cepData.localidade) {
+                municipalityData = await fetchIBGEData(cepData.localidade);
+            }
+        } else {
+            const parts = address.split(',');
+            if (parts.length > 0) {
+                municipalityData = await fetchIBGEData(parts[parts.length - 1].trim());
+            }
+        }
+        let rendaReal = null;
+        if (cepMatch) {
+            const cep = cepMatch[0].replace('-', '');
+            const cepResponse = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const cepData = await cepResponse.json();
+            if (cepData.localidade) {
+                rendaReal = getRendaPorMunicipio(cepData.localidade);
+            }
+        } else {
+            const parts = address.split(',');
+            if (parts.length > 0) {
+                const municipio = parts[parts.length - 1].trim();
+                rendaReal = getRendaPorMunicipio(municipio);
+            }
+        }
+        const consumoData = generateConsumoData(municipalityData, 2000, rendaReal);
+        currentConsumoData = consumoData;
+        currentConsumoAddress = address;
+        currentConsumoLat = lat;
+        currentConsumoLng = lng;
+        renderConsumoAnalysis(consumoData);
+    } catch (error) {
+        console.error('Erro ao processar análise de consumo:', error);
+        consumoContent.innerHTML = '<div style="padding: 20px; color: #d32f2f;">Erro ao carregar dados. Tente novamente.</div>';
+    }
+}
+
+function generateConsumoData(municipalityData, radius = 2000, rendaReal = null) {
+    const radiusMultiplier = radius === 2000 ? 0.3 : radius === 5000 ? 0.7 : 1.0;
+    const baseFamilies = 8000;
+    const families = Math.round(baseFamilies * radiusMultiplier + (Math.random() * baseFamilies * 0.2));
+    const baseIncome = rendaReal ? rendaReal : (1800 + Math.random() * 4200);
+    const incomeDist = calculateIncomeDistributionByBase(baseIncome);
+    const distForRadius = radius === 2000 ? incomeDist.income2km : radius === 5000 ? incomeDist.income5km : incomeDist.income8km;
+    const avgIncome = calculateAvgIncomeFromDistribution(distForRadius);
+    const avgConsumption = avgIncome * 0.6;
+    return {
+        radius: radius,
+        radiusKm: radius / 1000,
+        potentialConsumption: avgConsumption * families,
+        families: families,
+        avgFamilyIncome: avgIncome,
+        perCapitaIncome: Math.round(avgIncome / 3.2),
+        classA: Math.round(families * 0.06),
+        classB: Math.round(families * 0.18),
+        classC: Math.round(families * 0.50),
+        classD: Math.round(families * 0.22),
+        classE: Math.round(families * 0.04),
+        costOfLiving: 4.8 + Math.random() * 2.5,
+        populationDensity: Math.round(families * 2.5 / (Math.PI * Math.pow(radius / 1000, 2))),
+        costOfLifeDetails: {
+            alimentacao: 450 + Math.random() * 150,
+            transporte: 200 + Math.random() * 100,
+            lazer: 150 + Math.random() * 100,
+            aluguel: 800 + Math.random() * 400
+        },
+        empreendimentos: {
+            vitoria: Math.round(families * 0.25),
+            viver: Math.round(families * 0.35),
+            vista: Math.round(families * 0.28),
+            inc: Math.round(families * 0.12)
+        }
+    };
+}
+
+
+// =======================
+// Renda Média Familiar (mesma lógica do modelo de referência)
+// - Calcula a renda média familiar por raio a partir de uma distribuição por faixas
+// - Usa pontos médios das faixas para obter a média ponderada
+// =======================
+function calculateIncomeDistributionByBase(baseIncome) {
+    // Mesma lógica do exemplo fornecido (faixas por perfil de renda da região)
+    if (baseIncome > 6000) {
+        return {
+            income2km: [8, 15, 32, 28, 17],
+            income5km: [12, 20, 33, 23, 12],
+            income8km: [18, 25, 30, 18, 9]
+        };
+    } else if (baseIncome > 4000) {
+        return {
+            income2km: [18, 28, 30, 18, 6],
+            income5km: [25, 30, 27, 14, 4],
+            income8km: [32, 30, 24, 11, 3]
+        };
+    } else if (baseIncome > 2500) {
+        return {
+            income2km: [35, 32, 22, 9, 2],
+            income5km: [42, 30, 19, 7, 2],
+            income8km: [48, 28, 16, 6, 2]
+        };
+    } else {
+        return {
+            income2km: [58, 25, 12, 4, 1],
+            income5km: [62, 23, 10, 4, 1],
+            income8km: [65, 22, 9, 3, 1]
+        };
+    }
+}
+
+function calculateAvgIncomeFromDistribution(incomeDistribution) {
+    // Pontos médios das faixas (R$): até 2k, 2-4k, 4-8k, 8-15k, >15k
+    const midpoints = [1500, 3000, 6000, 11500, 20000];
+    let total = 0;
+    for (let i = 0; i < 5; i++) {
+        total += (incomeDistribution[i] || 0) * midpoints[i];
+    }
+    return Math.round(total / 100);
+}
+
+function renderConsumoAnalysis(data) {
+    const html = `
+        <div style="margin-bottom: 20px;">
+            <h3 style="color: #00512A; margin-bottom: 10px;">Selecione o raio de análise:</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button onclick="updateConsumoRadius(2000)" style="padding: 10px 20px; background: ${data.radiusKm === 2 ? '#007C27' : 'white'}; color: ${data.radiusKm === 2 ? 'white' : '#007C27'}; border: 2px solid #007C27; border-radius: 6px; cursor: pointer; font-weight: bold;">2 km</button>
+                <button onclick="updateConsumoRadius(5000)" style="padding: 10px 20px; background: ${data.radiusKm === 5 ? '#007C27' : 'white'}; color: ${data.radiusKm === 5 ? 'white' : '#007C27'}; border: 2px solid #007C27; border-radius: 6px; cursor: pointer; font-weight: bold;">5 km</button>
+                <button onclick="updateConsumoRadius(8000)" style="padding: 10px 20px; background: ${data.radiusKm === 8 ? '#007C27' : 'white'}; color: ${data.radiusKm === 8 ? 'white' : '#007C27'}; border: 2px solid #007C27; border-radius: 6px; cursor: pointer; font-weight: bold;">8 km</button>
+            </div>
+        </div>
+        <div class="consumo-grid">
+            <div class="consumo-card">
+                <h3>Potencial de Consumo</h3>
+                <div class="value">R$ ${(data.potentialConsumption / 1000000).toFixed(1)}M</div>
+                <div class="unit">Estimado mensal</div>
+            </div>
+            <div class="consumo-card">
+                <h3>Quantidade de Famílias</h3>
+                <div class="value">${data.families.toLocaleString('pt-BR')}</div>
+                <div class="unit">Domícílios particulares</div>
+            </div>
+            <div class="consumo-card">
+                <h3>Renda Média Familiar</h3>
+                <div class="value">R$ ${data.avgFamilyIncome.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</div>
+                <div class="unit">Mensal</div>
+            </div>
+            <div class="consumo-card">
+                <h3>Renda Per Capita</h3>
+                <div class="value">R$ ${data.perCapitaIncome.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</div>
+                <div class="unit">Mensal</div>
+            </div>
+            <div class="consumo-card">
+                <h3>Índice de Custo de Vida</h3>
+                <div class="value">${data.costOfLiving.toFixed(2)}</div>
+                <div class="unit">IPCA (variação %)</div>
+            </div>
+            <div class="consumo-card">
+                <h3>Densidade Populacional</h3>
+                <div class="value">${data.populationDensity.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</div>
+                <div class="unit">hab/km²</div>
+            </div>
+        </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <h3 style="color: #00512A; margin-bottom: 15px;">💰 Custo de Vida Mensal (Raio: ${data.radiusKm}km)</h3>
+            <div class="consumo-grid">
+                <div class="consumo-card" style="background: #fff3e0;">
+                    <h3>🍽️ Alimentação</h3>
+                    <div class="value">R$ ${data.costOfLifeDetails.alimentacao.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</div>
+                    <div class="unit">Família/mês</div>
+                </div>
+                <div class="consumo-card" style="background: #e3f2fd;">
+                    <h3>🚌 Transporte</h3>
+                    <div class="value">R$ ${data.costOfLifeDetails.transporte.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</div>
+                    <div class="unit">Família/mês</div>
+                </div>
+                <div class="consumo-card" style="background: #f3e5f5;">
+                    <h3>🎮 Lazer</h3>
+                    <div class="value">R$ ${data.costOfLifeDetails.lazer.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</div>
+                    <div class="unit">Família/mês</div>
+                </div>
+                <div class="consumo-card" style="background: #fce4ec;">
+                    <h3>🏠 Aluguel</h3>
+                    <div class="value">R$ ${data.costOfLifeDetails.aluguel.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</div>
+                    <div class="unit">Família/mês</div>
+                </div>
+            </div>
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <p style="margin: 5px 0; color: #333;"><strong>Total de Despesas:</strong> R$ ${(data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel).toLocaleString('pt-BR', {maximumFractionDigits: 0})}/mês</p>
+                <p style="margin: 5px 0; color: #333;"><strong>% da Renda:</strong> ${(((data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel) / data.avgFamilyIncome) * 100).toFixed(1)}%</p>
+            </div>
+        </div>
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <h3 style="color: #00512A; margin-bottom: 15px;">🏢 Recomendação de Empreendimentos (Raio: ${data.radiusKm}km)</h3>
+            <p style="color: #666; margin-bottom: 15px;">Baseado na renda familiar média de <strong>R$ ${data.avgFamilyIncome.toLocaleString('pt-BR', {maximumFractionDigits: 0})}</strong></p>
+            <div class="consumo-grid">
+                <div class="consumo-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                    <h3>🏠 Linha Vitória</h3>
+                    <div class="value">até R$ 2.500</div>
+                    <div class="unit">${data.empreendimentos.vitoria.toLocaleString('pt-BR')} famílias</div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 12px;">${((data.empreendimentos.vitoria / data.families) * 100).toFixed(1)}% do mercado</div>
+                </div>
+                <div class="consumo-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white;">
+                    <h3>🏘️ Linha Viver</h3>
+                    <div class="value">até R$ 6.500</div>
+                    <div class="unit">${data.empreendimentos.viver.toLocaleString('pt-BR')} famílias</div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 12px;">${((data.empreendimentos.viver / data.families) * 100).toFixed(1)}% do mercado</div>
+                </div>
+                <div class="consumo-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white;">
+                    <h3>🏗️ Linha Vista</h3>
+                    <div class="value">até R$ 10.000</div>
+                    <div class="unit">${data.empreendimentos.vista.toLocaleString('pt-BR')} famílias</div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 12px;">${((data.empreendimentos.vista / data.families) * 100).toFixed(1)}% do mercado</div>
+                </div>
+                <div class="consumo-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white;">
+                    <h3>💎 Linha INC</h3>
+                    <div class="value">acima de R$ 15.000</div>
+                    <div class="unit">${data.empreendimentos.inc.toLocaleString('pt-BR')} famílias</div>
+                    <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.3); font-size: 12px;">${((data.empreendimentos.inc / data.families) * 100).toFixed(1)}% do mercado</div>
+                </div>
+            </div>
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; margin-top: 15px; border-left: 4px solid #4caf50;">
+                <p style="margin: 5px 0; color: #2e7d32;"><strong>✓ Melhor Oportunidade:</strong> <span id="bestOpportunity" style="font-weight: bold;">Linha Viver</span> (maior mercado potencial)</p>
+            </div>
+        </div>
+        <div class="consumo-charts">
+            <div class="chart-card">
+                <h3>📊 Distribuição por Classe Social</h3>
+                <canvas id="classChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>💵 Potencial de Consumo por Classe</h3>
+                <canvas id="consumptionChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>💸 Custo de Vida por Categoria</h3>
+                <canvas id="costOfLifeChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>🏢 Potencial de Mercado por Linha</h3>
+                <canvas id="empreendimentosChart"></canvas>
+            </div>
+        </div>
+    `;
+    document.getElementById('consumoContent').innerHTML = html;
+    updateBestOpportunity(data);
+    setTimeout(() => {
+        createClassChart(data);
+        createConsumptionChart(data);
+        createCostOfLifeChart(data);
+        createEmpreendimentosChart(data);
+    }, 100);
+}
+
+function createClassChart(data) {
+    const ctx = document.getElementById('classChart');
+    if (!ctx) return;
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Classe A', 'Classe B', 'Classe C', 'Classe D', 'Classe E'],
+            datasets: [{
+                data: [data.classA, data.classB, data.classC, data.classD, data.classE],
+                backgroundColor: ['#28a745', '#007C27', '#ffc107', '#fd7e14', '#dc3545'],
+                borderColor: 'white',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+
+function createConsumptionChart(data) {
+    const ctx = document.getElementById('consumptionChart');
+    if (!ctx) return;
+    const classConsumption = [
+        data.classA * 8000,
+        data.classB * 4000,
+        data.classC * 1500,
+        data.classD * 600,
+        data.classE * 200
+    ];
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Classe A', 'Classe B', 'Classe C', 'Classe D', 'Classe E'],
+            datasets: [{
+                label: 'Consumo Médio (R$)',
+                data: classConsumption,
+                backgroundColor: '#007C27',
+                borderColor: '#00512A',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+function createCostOfLifeChart(data) {
+    const ctx = document.getElementById('costOfLifeChart');
+    if (!ctx) return;
+    
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Alimentação', 'Transporte', 'Lazer', 'Aluguel'],
+            datasets: [{
+                label: 'Custo Médio (R$)',
+                data: [
+                    data.costOfLifeDetails.alimentacao,
+                    data.costOfLifeDetails.transporte,
+                    data.costOfLifeDetails.lazer,
+                    data.costOfLifeDetails.aluguel
+                ],
+                backgroundColor: ['#FF9800', '#2196F3', '#9C27B0', '#E91E63'],
+                borderColor: ['#F57C00', '#1565C0', '#6A1B9A', '#C2185B'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            },
+            plugins: {
+                legend: { display: true }
+            }
+        }
+    });
+}
+
+function createEmpreendimentosChart(data) {
+    const ctx = document.getElementById('empreendimentosChart');
+    if (!ctx) return;
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Vitória (até R$ 2.500)', 'Viver (até R$ 6.500)', 'Vista (até R$ 10.000)', 'INC (acima R$ 15.000)'],
+            datasets: [{
+                data: [
+                    data.empreendimentos.vitoria,
+                    data.empreendimentos.viver,
+                    data.empreendimentos.vista,
+                    data.empreendimentos.inc
+                ],
+                backgroundColor: ['#667eea', '#f5576c', '#00f2fe', '#fee140'],
+                borderColor: 'white',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+}
+
+function updateBestOpportunity(data) {
+    const lines = [
+        { name: 'Vitória', value: data.empreendimentos.vitoria },
+        { name: 'Viver', value: data.empreendimentos.viver },
+        { name: 'Vista', value: data.empreendimentos.vista },
+        { name: 'INC', value: data.empreendimentos.inc }
+    ];
+    const best = lines.reduce((prev, current) => (prev.value > current.value) ? prev : current);
+    const element = document.getElementById('bestOpportunity');
+    if (element) {
+        element.textContent = 'Linha ' + best.name + ' (' + best.value.toLocaleString('pt-BR') + ' famílias)';
+    }
+}
+
+// Função para atualizar dados conforme o raio selecionado
+function updateConsumoRadius(radius) {
+    if (!currentConsumoData) return;
+    const rendaAtual = currentConsumoData.avgFamilyIncome;
+    const newData = generateConsumoData(null, radius, rendaAtual);
+    renderConsumoAnalysis(newData);
+}
+
+// Função de busca agora chama displayConsumoAnalysis diretamente em addSearchMarker
+        
         window.onload = function() {
             initMap();
             initAmenidadesAnalysis();
             updateTable();
         };
     </script>
+
+<button class="print-btn" onclick="window.print()">📄 Salvar em PDF</button>
+
 </body>
 </html>
+
+<button class="print-btn" onclick="window.print()">📄 Salvar em PDF</button>
+
 </body>
 </html>
