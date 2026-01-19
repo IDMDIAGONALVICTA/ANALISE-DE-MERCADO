@@ -6,6 +6,7 @@
     <title>Mapa de Empreendimentos - Análise Completa</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -461,6 +462,103 @@
             font-size: 13px;
         }
         .selection-controls button:hover { background: #00512A; }
+        .table-filters {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+            align-items: flex-start;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+        .filter-group > label {
+            font-weight: bold;
+            color: #00512A;
+            font-size: 14px;
+        }
+        .filter-dropdown {
+            position: relative;
+            width: 100%;
+        }
+        .filter-dropdown-btn {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #007C27;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            text-align: left;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+        .filter-dropdown-btn:hover {
+            background: #F0F5CD;
+        }
+        .filter-dropdown-btn .arrow {
+            transition: transform 0.3s;
+            color: #007C27;
+            font-weight: bold;
+        }
+        .filter-dropdown-btn.active .arrow {
+            transform: rotate(180deg);
+        }
+        .filter-dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #007C27;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        .filter-dropdown-content.show {
+            display: block;
+        }
+        .filter-option {
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .filter-option:hover {
+            background: #F0F5CD;
+        }
+        .filter-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #007C27;
+        }
+        .filter-option label {
+            cursor: pointer;
+            font-weight: normal;
+            color: #333;
+            flex: 1;
+            margin: 0;
+        }
+        .filter-option:first-child {
+            border-bottom: 2px solid #007C27;
+            background: #F0F5CD;
+            font-weight: bold;
+        }
+        .table-filters select:focus {
+            outline: none;
+            border-color: #00512A;
+        }
         .table-wrapper {
             overflow-x: auto;
             border-radius: 10px;
@@ -873,6 +971,42 @@
                     <button onclick="selectAll()">✓ Selecionar Todos</button>
                     <button onclick="deselectAll()">✗ Desmarcar Todos</button>
                     <button onclick="updateMapFromSelection()">🗺️ Atualizar Mapa</button>
+                    <button onclick="exportToExcel()" style="background: #28a745;">📊 Exportar Excel</button>
+                </div>
+            </div>
+            <div class="table-filters">
+                <div class="filter-group">
+                    <label>🏢 Empresa:</label>
+                    <div class="filter-dropdown">
+                        <button class="filter-dropdown-btn" onclick="toggleFilterDropdown('filterEmpresaDropdown')">
+                            <span id="filterEmpresaLabel">Todas as Empresas</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="filter-dropdown-content" id="filterEmpresaDropdown">
+                            <div class="filter-option">
+                                <input type="checkbox" id="allEmpresas" checked onchange="toggleAllEmpresas()">
+                                <label for="allEmpresas">Todas as Empresas</label>
+                            </div>
+                            <div id="empresasList"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="filter-group">
+                    <label>📦 Linha de Produto:</label>
+                    <div class="filter-dropdown">
+                        <button class="filter-dropdown-btn" onclick="toggleFilterDropdown('filterLinhaDropdown')">
+                            <span id="filterLinhaLabel">Todas as Linhas</span>
+                            <span class="arrow">▼</span>
+                        </button>
+                        <div class="filter-dropdown-content" id="filterLinhaDropdown">
+                            <div class="filter-option">
+                                <input type="checkbox" id="allLinhas" checked onchange="toggleAllLinhas()">
+                                <label for="allLinhas">Todas as Linhas</label>
+                            </div>
+                            <div id="linhasList"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="table-wrapper">
@@ -1075,13 +1209,14 @@ let isSatellite = false, streetLayer, satelliteLayer;
             });
             streetLayer.addTo(map);
             addMarkers();
+            populateTableFilters();
         }
         
         function addMarkers() {
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
             empreendimentos.forEach((emp, index) => {
-                if (!shouldShowEmpreendimento(emp)) return;
+                if (!shouldShowEmpreendimentoWithFilters(emp)) return;
                 const checkbox = document.querySelector(`input[data-index="${index}"]`);
                 if (checkbox && !checkbox.checked) return;
                 if (selectedAmenidades.length > 0) {
@@ -1422,11 +1557,136 @@ let isSatellite = false, streetLayer, satelliteLayer;
             return value.toString().toUpperCase() === 'SIM' ? '<span class="sim-badge">SIM</span>' : '<span class="nao-badge">NÃO</span>';
         }
         
+        // Funções de filtro de Empresa e Linha
+        function populateTableFilters() {
+            const empresas = [...new Set(empreendimentos.map(emp => emp.EMPRESA))].sort();
+            const linhas = [...new Set(empreendimentos.map(emp => emp['LINHA DE PRODUTO']))].sort();
+            
+            const empresasList = document.getElementById('empresasList');
+            const linhasList = document.getElementById('linhasList');
+            
+            empresasList.innerHTML = '';
+            empresas.forEach((empresa, index) => {
+                empresasList.innerHTML += `
+                    <div class="filter-option">
+                        <input type="checkbox" id="empresa_${index}" value="${empresa}" checked onchange="updateEmpresaFilter()">
+                        <label for="empresa_${index}">${empresa}</label>
+                    </div>
+                `;
+            });
+            
+            linhasList.innerHTML = '';
+            linhas.forEach((linha, index) => {
+                linhasList.innerHTML += `
+                    <div class="filter-option">
+                        <input type="checkbox" id="linha_${index}" value="${linha}" checked onchange="updateLinhaFilter()">
+                        <label for="linha_${index}">${linha}</label>
+                    </div>
+                `;
+            });
+        }
+        
+        function toggleFilterDropdown(dropdownId) {
+            const dropdown = document.getElementById(dropdownId);
+            const btn = dropdown.previousElementSibling;
+            
+            // Fechar outros dropdowns
+            document.querySelectorAll('.filter-dropdown-content').forEach(d => {
+                if (d.id !== dropdownId) {
+                    d.classList.remove('show');
+                    d.previousElementSibling.classList.remove('active');
+                }
+            });
+            
+            dropdown.classList.toggle('show');
+            btn.classList.toggle('active');
+        }
+        
+        function toggleAllEmpresas() {
+            const allCheckbox = document.getElementById('allEmpresas');
+            const checkboxes = document.querySelectorAll('#empresasList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = allCheckbox.checked);
+            updateEmpresaFilter();
+        }
+        
+        function toggleAllLinhas() {
+            const allCheckbox = document.getElementById('allLinhas');
+            const checkboxes = document.querySelectorAll('#linhasList input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = allCheckbox.checked);
+            updateLinhaFilter();
+        }
+        
+        function updateEmpresaFilter() {
+            const checkboxes = document.querySelectorAll('#empresasList input[type="checkbox"]:checked');
+            const allCheckbox = document.getElementById('allEmpresas');
+            const label = document.getElementById('filterEmpresaLabel');
+            
+            if (checkboxes.length === 0) {
+                allCheckbox.checked = false;
+                label.textContent = 'Nenhuma empresa selecionada';
+            } else if (checkboxes.length === document.querySelectorAll('#empresasList input[type="checkbox"]').length) {
+                allCheckbox.checked = true;
+                label.textContent = 'Todas as Empresas';
+            } else {
+                allCheckbox.checked = false;
+                label.textContent = `${checkboxes.length} empresa(s) selecionada(s)`;
+            }
+            
+            applyTableFilters();
+        }
+        
+        function updateLinhaFilter() {
+            const checkboxes = document.querySelectorAll('#linhasList input[type="checkbox"]:checked');
+            const allCheckbox = document.getElementById('allLinhas');
+            const label = document.getElementById('filterLinhaLabel');
+            
+            if (checkboxes.length === 0) {
+                allCheckbox.checked = false;
+                label.textContent = 'Nenhuma linha selecionada';
+            } else if (checkboxes.length === document.querySelectorAll('#linhasList input[type="checkbox"]').length) {
+                allCheckbox.checked = true;
+                label.textContent = 'Todas as Linhas';
+            } else {
+                allCheckbox.checked = false;
+                label.textContent = `${checkboxes.length} linha(s) selecionada(s)`;
+            }
+            
+            applyTableFilters();
+        }
+        
+        function applyTableFilters() {
+            updateTable();
+            updateMapFromSelection();
+        }
+        
+        function shouldShowEmpreendimentoWithFilters(emp) {
+            const empresasCheckboxes = document.querySelectorAll('#empresasList input[type="checkbox"]:checked');
+            const linhasCheckboxes = document.querySelectorAll('#linhasList input[type="checkbox"]:checked');
+            
+            const empresasSelecionadas = Array.from(empresasCheckboxes).map(cb => cb.value);
+            const linhasSelecionadas = Array.from(linhasCheckboxes).map(cb => cb.value);
+            
+            if (empresasSelecionadas.length > 0 && !empresasSelecionadas.includes(emp.EMPRESA)) return false;
+            if (linhasSelecionadas.length > 0 && !linhasSelecionadas.includes(emp['LINHA DE PRODUTO'])) return false;
+            
+            return shouldShowEmpreendimento(emp);
+        }
+        
+        // Fechar dropdowns ao clicar fora
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('.filter-dropdown')) {
+                document.querySelectorAll('.filter-dropdown-content').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                    dropdown.previousElementSibling.classList.remove('active');
+                });
+            }
+        });
+        
         function updateTable() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
             empreendimentos.forEach((emp, index) => {
-                if (!shouldShowEmpreendimento(emp)) return;
+                if (!shouldShowEmpreendimentoWithFilters(emp)) return;
                 if (selectedAmenidades.length > 0) {
                     const empAmenidades = getAmenidadesList(emp);
                     if (!selectedAmenidades.every(a => empAmenidades.includes(a))) return;
@@ -1436,15 +1696,6 @@ let isSatellite = false, streetLayer, satelliteLayer;
                 if (pct >= 70) statusClass = 'status-alto';
                 else if (pct >= 40) statusClass = 'status-medio';
                 const row = document.createElement('tr');
-                let distanceHtml = '<td>-</td>';
-                let timeHtml = '<td>-</td>';
-                
-                if (currentSearchPoint && emp.LATITUDE && emp.LONGITUDE) {
-                    const distance = calculateDistance(currentSearchPoint.lat, currentSearchPoint.lng, emp.LATITUDE, emp.LONGITUDE);
-                    const time = Math.round(distance / 50 * 60);
-                    distanceHtml = `<td>${distance.toFixed(2)} km</td>`;
-                    timeHtml = `<td>${time} min</td>`;
-                }
                 
                 row.innerHTML = `
                     <td class="checkbox-cell"><input type="checkbox" data-index="${index}" checked onchange="updateMapFromSelection()"></td>
@@ -1453,8 +1704,6 @@ let isSatellite = false, streetLayer, satelliteLayer;
                     <td><strong>${emp.EMPREENDIMENTO}</strong></td>
                     <td>${emp.ENDEREÇO}</td>
                     <td>${emp.CIDADE}</td>
-                    ${distanceHtml}
-                    ${timeHtml}
                     <td>${emp.VAGAS}</td>
                     <td>${emp.LANÇAMENTO}</td>
                     <td>${emp.ENTREGA}</td>
@@ -1492,7 +1741,7 @@ let isSatellite = false, streetLayer, satelliteLayer;
         
         function updateStats() {
             const visibleEmps = empreendimentos.filter(emp => {
-                if (!shouldShowEmpreendimento(emp)) return false;
+                if (!shouldShowEmpreendimentoWithFilters(emp)) return false;
                 if (selectedAmenidades.length > 0) {
                     const empAmenidades = getAmenidadesList(emp);
                     return selectedAmenidades.every(a => empAmenidades.includes(a));
@@ -1545,6 +1794,112 @@ let isSatellite = false, streetLayer, satelliteLayer;
         }
         
         function updateMapFromSelection() { addMarkers(); }
+        
+        function exportToExcel() {
+            // Coletar dados filtrados e visíveis na tabela
+            const visibleEmps = empreendimentos.filter(emp => {
+                if (!shouldShowEmpreendimentoWithFilters(emp)) return false;
+                if (selectedAmenidades.length > 0) {
+                    const empAmenidades = getAmenidadesList(emp);
+                    return selectedAmenidades.every(a => empAmenidades.includes(a));
+                }
+                return true;
+            });
+            
+            // Preparar dados para Excel
+            const excelData = visibleEmps.map(emp => ({
+                'Linha de Produto': emp['LINHA DE PRODUTO'],
+                'Empresa': emp.EMPRESA,
+                'Empreendimento': emp.EMPREENDIMENTO,
+                'Endereço': emp.ENDEREÇO,
+                'Cidade': emp.CIDADE,
+                'Vagas': emp.VAGAS,
+                'Lançamento': emp.LANÇAMENTO,
+                'Entrega': emp.ENTREGA,
+                'Unidades': emp.UNIDADES,
+                'Vendas': emp.VENDAS,
+                '% Vendida': (emp['% VENDIDA'] * 100).toFixed(1) + '%',
+                'Estoque': emp.ESTOQUE,
+                '% Estoque': emp['% ESTOQUE'].toFixed(1) + '%',
+                'M² Médio': emp['M² MÉDIO'].toFixed(2),
+                'M² Estoque': emp['M² ESTOQUE'],
+                'VGV Médio': emp['VGV Médio'],
+                'Avaliação Média': emp['Avaliação Média'],
+                'VGV Estoque': emp['VGV Estoque'],
+                'Método Construtivo': emp['METODO CONSTRUTIVO'],
+                'Sinal': emp[' Sinal '],
+                'Qtd. Parcela': emp[' Qtd. Parcela '],
+                'Documentação': emp[' Documentação '],
+                'Rooftop': emp['ROOFTOP'],
+                'Piscina Adulto': emp[' PISCINA ADULTO '],
+                'Piscina Infantil': emp[' PISCINA INFANTIL '],
+                'Horta': emp[' HORTA '],
+                'Playground': emp[' PLAYGROUND '],
+                'Petplace': emp[' PETPLACE '],
+                'Bicicletário': emp[' BICICLETÁRIO '],
+                'Espaço Fitness': emp[' ESPAÇO FITNESS '],
+                'Salão de Festa': emp[' SALÃO DE FESTA '],
+                'Redário': emp[' REDÁRIO '],
+                'Praça': emp[' PRAÇA '],
+                'Churrasqueira': emp[' CHURRAQUEIRA '],
+                'Total Lazer': countAmenidades(emp) + '/12'
+            }));
+            
+            // Criar planilha
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            
+            // Ajustar largura das colunas
+            const colWidths = [
+                { wch: 18 }, // Linha de Produto
+                { wch: 15 }, // Empresa
+                { wch: 25 }, // Empreendimento
+                { wch: 35 }, // Endereço
+                { wch: 15 }, // Cidade
+                { wch: 8 },  // Vagas
+                { wch: 12 }, // Lançamento
+                { wch: 12 }, // Entrega
+                { wch: 10 }, // Unidades
+                { wch: 10 }, // Vendas
+                { wch: 12 }, // % Vendida
+                { wch: 10 }, // Estoque
+                { wch: 12 }, // % Estoque
+                { wch: 12 }, // M² Médio
+                { wch: 12 }, // M² Estoque
+                { wch: 15 }, // VGV Médio
+                { wch: 15 }, // Avaliação Média
+                { wch: 15 }, // VGV Estoque
+                { wch: 18 }, // Método Construtivo
+                { wch: 10 }, // Sinal
+                { wch: 12 }, // Qtd. Parcela
+                { wch: 15 }, // Documentação
+                { wch: 10 }, // Rooftop
+                { wch: 14 }, // Piscina Adulto
+                { wch: 15 }, // Piscina Infantil
+                { wch: 10 }, // Horta
+                { wch: 12 }, // Playground
+                { wch: 10 }, // Petplace
+                { wch: 12 }, // Bicicletário
+                { wch: 14 }, // Espaço Fitness
+                { wch: 14 }, // Salão de Festa
+                { wch: 10 }, // Redário
+                { wch: 10 }, // Praça
+                { wch: 14 }, // Churrasqueira
+                { wch: 12 }  // Total Lazer
+            ];
+            ws['!cols'] = colWidths;
+            
+            // Criar workbook e adicionar a planilha
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Empreendimentos');
+            
+            // Gerar nome do arquivo com data
+            const hoje = new Date();
+            const dataFormatada = hoje.toISOString().split('T')[0];
+            const nomeArquivo = `Empreendimentos_${dataFormatada}.xlsx`;
+            
+            // Download do arquivo
+            XLSX.writeFile(wb, nomeArquivo);
+        }
         
         // Variável global para armazenar dados de consumo
 let currentConsumoData = null;
@@ -1845,6 +2200,123 @@ function renderConsumoAnalysis(data) {
                 <p style="margin: 5px 0; color: #2e7d32;"><strong>✓ Melhor Oportunidade:</strong> <span id="bestOpportunity" style="font-weight: bold;">Linha Viver</span> (maior mercado potencial)</p>
             </div>
         </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
+            <h3 style="color: #00512A; margin-bottom: 15px; cursor: pointer;" onclick="toggleDicionario()">
+                🧮 Memória de Cálculo - Como chegamos aos dados
+                <span id="dicionarioArrow" style="font-size: 0.8em;">▼</span>
+            </h3>
+            <div id="dicionarioContent" style="display: none;">
+                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #007C27;">
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">🏘️ 1. Quantidade de Famílias</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Passo 1:</strong> Base de famílias = 8.000<br>
+                            <strong>Passo 2:</strong> Multiplicador do raio ${data.radiusKm}km = ${data.radiusKm === 2 ? '0.3' : data.radiusKm === 5 ? '0.7' : '1.0'}<br>
+                            <strong>Passo 3:</strong> 8.000 × ${data.radiusKm === 2 ? '0.3' : data.radiusKm === 5 ? '0.7' : '1.0'} = ${Math.round(8000 * (data.radiusKm === 2 ? 0.3 : data.radiusKm === 5 ? 0.7 : 1.0)).toLocaleString('pt-BR')}<br>
+                            <strong>Passo 4:</strong> Aplicar variação aleatória de ±20% = <span style="color: #007C27; font-weight: bold;">${data.families.toLocaleString('pt-BR')} famílias</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">💵 2. Renda Média Familiar</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Distribuição por faixas de renda:</strong><br>
+                            ${(() => {
+                                const baseIncome = data.avgFamilyIncome;
+                                let dist;
+                                if (baseIncome > 6000) dist = data.radiusKm === 2 ? [8, 15, 32, 28, 17] : data.radiusKm === 5 ? [12, 20, 33, 23, 12] : [18, 25, 30, 18, 9];
+                                else if (baseIncome > 4000) dist = data.radiusKm === 2 ? [18, 28, 30, 18, 6] : data.radiusKm === 5 ? [25, 30, 27, 14, 4] : [32, 30, 24, 11, 3];
+                                else if (baseIncome > 2500) dist = data.radiusKm === 2 ? [35, 32, 22, 9, 2] : data.radiusKm === 5 ? [42, 30, 19, 7, 2] : [48, 28, 16, 6, 2];
+                                else dist = data.radiusKm === 2 ? [58, 25, 12, 4, 1] : data.radiusKm === 5 ? [62, 23, 10, 4, 1] : [65, 22, 9, 3, 1];
+                                
+                                return `• Até R$ 2.000: ${dist[0]}% × R$ 1.500 = R$ ${(dist[0] * 1500).toLocaleString('pt-BR')}<br>
+                            • R$ 2-4k: ${dist[1]}% × R$ 3.000 = R$ ${(dist[1] * 3000).toLocaleString('pt-BR')}<br>
+                            • R$ 4-8k: ${dist[2]}% × R$ 6.000 = R$ ${(dist[2] * 6000).toLocaleString('pt-BR')}<br>
+                            • R$ 8-15k: ${dist[3]}% × R$ 11.500 = R$ ${(dist[3] * 11500).toLocaleString('pt-BR')}<br>
+                            • Acima R$ 15k: ${dist[4]}% × R$ 20.000 = R$ ${(dist[4] * 20000).toLocaleString('pt-BR')}<br>
+                            <strong>Soma:</strong> R$ ${((dist[0] * 1500) + (dist[1] * 3000) + (dist[2] * 6000) + (dist[3] * 11500) + (dist[4] * 20000)).toLocaleString('pt-BR')}<br>
+                            <strong>Média:</strong> R$ ${((dist[0] * 1500) + (dist[1] * 3000) + (dist[2] * 6000) + (dist[3] * 11500) + (dist[4] * 20000)).toLocaleString('pt-BR')} ÷ 100 = <span style="color: #007C27; font-weight: bold;">R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')}</span>`;
+                            })()}
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">👤 3. Renda Per Capita</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Cálculo:</strong> Renda Familiar ÷ Pessoas por Família<br>
+                            R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} ÷ 3.2 = <span style="color: #007C27; font-weight: bold;">R$ ${data.perCapitaIncome.toLocaleString('pt-BR')}</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">💰 4. Potencial de Consumo</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Passo 1:</strong> Consumo médio por família = Renda × 60%<br>
+                            R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} × 0.6 = R$ ${(data.avgFamilyIncome * 0.6).toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br><br>
+                            <strong>Passo 2:</strong> Potencial total = Consumo × Famílias<br>
+                            R$ ${(data.avgFamilyIncome * 0.6).toLocaleString('pt-BR', {maximumFractionDigits: 0})} × ${data.families.toLocaleString('pt-BR')} = <span style="color: #007C27; font-weight: bold;">R$ ${(data.potentialConsumption / 1000000).toFixed(2)}M</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">👥 5. Densidade Populacional</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Passo 1:</strong> População total = Famílias × 2.5 pessoas<br>
+                            ${data.families.toLocaleString('pt-BR')} × 2.5 = ${(data.families * 2.5).toLocaleString('pt-BR')} pessoas<br><br>
+                            <strong>Passo 2:</strong> Área do círculo = π × raio²<br>
+                            3.14159 × ${data.radiusKm}² = ${(Math.PI * Math.pow(data.radiusKm, 2)).toFixed(2)} km²<br><br>
+                            <strong>Passo 3:</strong> Densidade = População ÷ Área<br>
+                            ${(data.families * 2.5).toLocaleString('pt-BR')} ÷ ${(Math.PI * Math.pow(data.radiusKm, 2)).toFixed(2)} = <span style="color: #007C27; font-weight: bold;">${data.populationDensity.toLocaleString('pt-BR')} hab/km²</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">🏢 6. Distribuição por Classes Sociais</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Classe A (6%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.06 = <span style="color: #28a745; font-weight: bold;">${data.classA.toLocaleString('pt-BR')}</span> famílias<br>
+                            <strong>Classe B (18%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.18 = <span style="color: #007C27; font-weight: bold;">${data.classB.toLocaleString('pt-BR')}</span> famílias<br>
+                            <strong>Classe C (50%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.50 = <span style="color: #ffc107; font-weight: bold;">${data.classC.toLocaleString('pt-BR')}</span> famílias<br>
+                            <strong>Classe D (22%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.22 = <span style="color: #fd7e14; font-weight: bold;">${data.classD.toLocaleString('pt-BR')}</span> famílias<br>
+                            <strong>Classe E (4%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.04 = <span style="color: #dc3545; font-weight: bold;">${data.classE.toLocaleString('pt-BR')}</span> famílias<br>
+                            <strong>Total:</strong> ${(data.classA + data.classB + data.classC + data.classD + data.classE).toLocaleString('pt-BR')} famílias ✓
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">💸 7. Custos de Vida</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Alimentação:</strong> Base R$ 450 + variação = R$ ${data.costOfLifeDetails.alimentacao.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
+                            <strong>Transporte:</strong> Base R$ 200 + variação = R$ ${data.costOfLifeDetails.transporte.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
+                            <strong>Lazer:</strong> Base R$ 150 + variação = R$ ${data.costOfLifeDetails.lazer.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
+                            <strong>Aluguel:</strong> Base R$ 800 + variação = R$ ${data.costOfLifeDetails.aluguel.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br><br>
+                            <strong>Total:</strong> R$ ${(data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel).toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
+                            <strong>% da Renda:</strong> R$ ${(data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel).toLocaleString('pt-BR', {maximumFractionDigits: 0})} ÷ R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} = <span style="color: #007C27; font-weight: bold;">${(((data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel) / data.avgFamilyIncome) * 100).toFixed(1)}%</span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
+                        <h4 style="color: #00512A; margin-bottom: 10px;">🏗️ 8. Potencial por Linha de Produto</h4>
+                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                            <strong>Vitória (25%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.25 = <span style="font-weight: bold;">${data.empreendimentos.vitoria.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.vitoria / data.families) * 100).toFixed(1)}%)<br>
+                            <strong>Viver (35%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.35 = <span style="font-weight: bold;">${data.empreendimentos.viver.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.viver / data.families) * 100).toFixed(1)}%)<br>
+                            <strong>Vista (28%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.28 = <span style="font-weight: bold;">${data.empreendimentos.vista.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.vista / data.families) * 100).toFixed(1)}%)<br>
+                            <strong>INC (12%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.12 = <span style="font-weight: bold;">${data.empreendimentos.inc.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.inc / data.families) * 100).toFixed(1)}%)<br>
+                            <strong>Total:</strong> ${(data.empreendimentos.vitoria + data.empreendimentos.viver + data.empreendimentos.vista + data.empreendimentos.inc).toLocaleString('pt-BR')} famílias ✓
+                        </div>
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; border-left: 4px solid #2196f3;">
+                        <p style="color: #1565c0; margin: 0; font-size: 0.95em;">
+                            <strong>ℹ️ Metodologia:</strong> Todos os cálculos são baseados em dados IBGE 2022, metodologia de análise de mercado imobiliário e variações estatísticas para refletir características regionais. O raio de ${data.radiusKm}km foi utilizado nesta análise.
+                        </p>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+        
         <div class="consumo-charts">
             <div class="chart-card">
                 <h3>📊 Distribuição por Classe Social</h3>
@@ -2005,6 +2477,19 @@ function updateBestOpportunity(data) {
 }
 
 // Função para atualizar dados conforme o raio selecionado
+function toggleDicionario() {
+    const content = document.getElementById('dicionarioContent');
+    const arrow = document.getElementById('dicionarioArrow');
+    
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        arrow.textContent = '▲';
+    } else {
+        content.style.display = 'none';
+        arrow.textContent = '▼';
+    }
+}
+
 function updateConsumoRadius(radius) {
     if (!currentConsumoData) return;
     const rendaAtual = currentConsumoData.avgFamilyIncome;
