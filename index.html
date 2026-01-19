@@ -2202,118 +2202,213 @@ function renderConsumoAnalysis(data) {
         </div>
         
         <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #e0e0e0;">
-            <h3 style="color: #00512A; margin-bottom: 15px; cursor: pointer;" onclick="toggleDicionario()">
-                🧮 Memória de Cálculo - Como chegamos aos dados
-                <span id="dicionarioArrow" style="font-size: 0.8em;">▼</span>
+            <h3 style="color: #00512A; margin-bottom: 15px;">
+                🧮 Resumo: Origem dos Dados e Memória de Cálculo
             </h3>
-            <div id="dicionarioContent" style="display: none;">
-                <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #007C27;">
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">🏘️ 1. Quantidade de Famílias</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Passo 1:</strong> Base de famílias = 8.000<br>
-                            <strong>Passo 2:</strong> Multiplicador do raio ${data.radiusKm}km = ${data.radiusKm === 2 ? '0.3' : data.radiusKm === 5 ? '0.7' : '1.0'}<br>
-                            <strong>Passo 3:</strong> 8.000 × ${data.radiusKm === 2 ? '0.3' : data.radiusKm === 5 ? '0.7' : '1.0'} = ${Math.round(8000 * (data.radiusKm === 2 ? 0.3 : data.radiusKm === 5 ? 0.7 : 1.0)).toLocaleString('pt-BR')}<br>
-                            <strong>Passo 4:</strong> Aplicar variação aleatória de ±20% = <span style="color: #007C27; font-weight: bold;">${data.families.toLocaleString('pt-BR')} famílias</span>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">💵 2. Renda Média Familiar</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Distribuição por faixas de renda:</strong><br>
-                            ${(() => {
-                                const baseIncome = data.avgFamilyIncome;
-                                let dist;
-                                if (baseIncome > 6000) dist = data.radiusKm === 2 ? [8, 15, 32, 28, 17] : data.radiusKm === 5 ? [12, 20, 33, 23, 12] : [18, 25, 30, 18, 9];
-                                else if (baseIncome > 4000) dist = data.radiusKm === 2 ? [18, 28, 30, 18, 6] : data.radiusKm === 5 ? [25, 30, 27, 14, 4] : [32, 30, 24, 11, 3];
-                                else if (baseIncome > 2500) dist = data.radiusKm === 2 ? [35, 32, 22, 9, 2] : data.radiusKm === 5 ? [42, 30, 19, 7, 2] : [48, 28, 16, 6, 2];
-                                else dist = data.radiusKm === 2 ? [58, 25, 12, 4, 1] : data.radiusKm === 5 ? [62, 23, 10, 4, 1] : [65, 22, 9, 3, 1];
-                                
-                                return `• Até R$ 2.000: ${dist[0]}% × R$ 1.500 = R$ ${(dist[0] * 1500).toLocaleString('pt-BR')}<br>
-                            • R$ 2-4k: ${dist[1]}% × R$ 3.000 = R$ ${(dist[1] * 3000).toLocaleString('pt-BR')}<br>
-                            • R$ 4-8k: ${dist[2]}% × R$ 6.000 = R$ ${(dist[2] * 6000).toLocaleString('pt-BR')}<br>
-                            • R$ 8-15k: ${dist[3]}% × R$ 11.500 = R$ ${(dist[3] * 11500).toLocaleString('pt-BR')}<br>
-                            • Acima R$ 15k: ${dist[4]}% × R$ 20.000 = R$ ${(dist[4] * 20000).toLocaleString('pt-BR')}<br>
-                            <strong>Soma:</strong> R$ ${((dist[0] * 1500) + (dist[1] * 3000) + (dist[2] * 6000) + (dist[3] * 11500) + (dist[4] * 20000)).toLocaleString('pt-BR')}<br>
-                            <strong>Média:</strong> R$ ${((dist[0] * 1500) + (dist[1] * 3000) + (dist[2] * 6000) + (dist[3] * 11500) + (dist[4] * 20000)).toLocaleString('pt-BR')} ÷ 100 = <span style="color: #007C27; font-weight: bold;">R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')}</span>`;
-                            })()}
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">👤 3. Renda Per Capita</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Cálculo:</strong> Renda Familiar ÷ Pessoas por Família<br>
-                            R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} ÷ 3.2 = <span style="color: #007C27; font-weight: bold;">R$ ${data.perCapitaIncome.toLocaleString('pt-BR')}</span>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">💰 4. Potencial de Consumo</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Passo 1:</strong> Consumo médio por família = Renda × 60%<br>
-                            R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} × 0.6 = R$ ${(data.avgFamilyIncome * 0.6).toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br><br>
-                            <strong>Passo 2:</strong> Potencial total = Consumo × Famílias<br>
-                            R$ ${(data.avgFamilyIncome * 0.6).toLocaleString('pt-BR', {maximumFractionDigits: 0})} × ${data.families.toLocaleString('pt-BR')} = <span style="color: #007C27; font-weight: bold;">R$ ${(data.potentialConsumption / 1000000).toFixed(2)}M</span>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">👥 5. Densidade Populacional</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Passo 1:</strong> População total = Famílias × 2.5 pessoas<br>
-                            ${data.families.toLocaleString('pt-BR')} × 2.5 = ${(data.families * 2.5).toLocaleString('pt-BR')} pessoas<br><br>
-                            <strong>Passo 2:</strong> Área do círculo = π × raio²<br>
-                            3.14159 × ${data.radiusKm}² = ${(Math.PI * Math.pow(data.radiusKm, 2)).toFixed(2)} km²<br><br>
-                            <strong>Passo 3:</strong> Densidade = População ÷ Área<br>
-                            ${(data.families * 2.5).toLocaleString('pt-BR')} ÷ ${(Math.PI * Math.pow(data.radiusKm, 2)).toFixed(2)} = <span style="color: #007C27; font-weight: bold;">${data.populationDensity.toLocaleString('pt-BR')} hab/km²</span>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">🏢 6. Distribuição por Classes Sociais</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Classe A (6%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.06 = <span style="color: #28a745; font-weight: bold;">${data.classA.toLocaleString('pt-BR')}</span> famílias<br>
-                            <strong>Classe B (18%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.18 = <span style="color: #007C27; font-weight: bold;">${data.classB.toLocaleString('pt-BR')}</span> famílias<br>
-                            <strong>Classe C (50%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.50 = <span style="color: #ffc107; font-weight: bold;">${data.classC.toLocaleString('pt-BR')}</span> famílias<br>
-                            <strong>Classe D (22%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.22 = <span style="color: #fd7e14; font-weight: bold;">${data.classD.toLocaleString('pt-BR')}</span> famílias<br>
-                            <strong>Classe E (4%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.04 = <span style="color: #dc3545; font-weight: bold;">${data.classE.toLocaleString('pt-BR')}</span> famílias<br>
-                            <strong>Total:</strong> ${(data.classA + data.classB + data.classC + data.classD + data.classE).toLocaleString('pt-BR')} famílias ✓
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">💸 7. Custos de Vida</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Alimentação:</strong> Base R$ 450 + variação = R$ ${data.costOfLifeDetails.alimentacao.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
-                            <strong>Transporte:</strong> Base R$ 200 + variação = R$ ${data.costOfLifeDetails.transporte.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
-                            <strong>Lazer:</strong> Base R$ 150 + variação = R$ ${data.costOfLifeDetails.lazer.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
-                            <strong>Aluguel:</strong> Base R$ 800 + variação = R$ ${data.costOfLifeDetails.aluguel.toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br><br>
-                            <strong>Total:</strong> R$ ${(data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel).toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
-                            <strong>% da Renda:</strong> R$ ${(data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel).toLocaleString('pt-BR', {maximumFractionDigits: 0})} ÷ R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} = <span style="color: #007C27; font-weight: bold;">${(((data.costOfLifeDetails.alimentacao + data.costOfLifeDetails.transporte + data.costOfLifeDetails.lazer + data.costOfLifeDetails.aluguel) / data.avgFamilyIncome) * 100).toFixed(1)}%</span>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px;">
-                        <h4 style="color: #00512A; margin-bottom: 10px;">🏗️ 8. Potencial por Linha de Produto</h4>
-                        <div style="font-family: monospace; background: #f9f9f9; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                            <strong>Vitória (25%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.25 = <span style="font-weight: bold;">${data.empreendimentos.vitoria.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.vitoria / data.families) * 100).toFixed(1)}%)<br>
-                            <strong>Viver (35%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.35 = <span style="font-weight: bold;">${data.empreendimentos.viver.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.viver / data.families) * 100).toFixed(1)}%)<br>
-                            <strong>Vista (28%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.28 = <span style="font-weight: bold;">${data.empreendimentos.vista.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.vista / data.families) * 100).toFixed(1)}%)<br>
-                            <strong>INC (12%):</strong> ${data.families.toLocaleString('pt-BR')} × 0.12 = <span style="font-weight: bold;">${data.empreendimentos.inc.toLocaleString('pt-BR')}</span> famílias (${((data.empreendimentos.inc / data.families) * 100).toFixed(1)}%)<br>
-                            <strong>Total:</strong> ${(data.empreendimentos.vitoria + data.empreendimentos.viver + data.empreendimentos.vista + data.empreendimentos.inc).toLocaleString('pt-BR')} famílias ✓
-                        </div>
-                    </div>
-                    
-                    <div style="background: #e3f2fd; padding: 15px; border-radius: 6px; border-left: 4px solid #2196f3;">
-                        <p style="color: #1565c0; margin: 0; font-size: 0.95em;">
-                            <strong>ℹ️ Metodologia:</strong> Todos os cálculos são baseados em dados IBGE 2022, metodologia de análise de mercado imobiliário e variações estatísticas para refletir características regionais. O raio de ${data.radiusKm}km foi utilizado nesta análise.
-                        </p>
-                    </div>
-                    
+            <div style="background: #f0f5cd; padding: 20px; border-radius: 8px; border-left: 4px solid #007C27; margin-bottom: 20px;">
+                <h4 style="color: #00512A; margin-bottom: 10px;">📊 FONTES DOS DADOS</h4>
+                <div style="background: white; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <p style="margin: 5px 0;"><strong>1. Renda Base Regional:</strong> ${(() => {
+                        const baseIncome = data.avgFamilyIncome;
+                        if (baseIncome > 6000) return 'R$ 6.000+ (Região de Alta Renda)';
+                        else if (baseIncome > 4000) return 'R$ 4.000-6.000 (Região de Renda Média-Alta)';
+                        else if (baseIncome > 2500) return 'R$ 2.500-4.000 (Região de Renda Média)';
+                        else return 'Até R$ 2.500 (Região de Renda Baixa)';
+                    })()}</p>
+                    <p style="margin: 5px 0;"><strong>2. Raio de Análise:</strong> ${data.radiusKm} km</p>
+                    <p style="margin: 5px 0;"><strong>3. Base de Famílias (IBGE):</strong> 8.000 famílias</p>
+                    <p style="margin: 5px 0;"><strong>4. Tamanho Médio Família (IBGE):</strong> 3.2 pessoas</p>
+                    <p style="margin: 5px 0;"><strong>5. Taxa de Consumo (Economia):</strong> 60% da renda</p>
                 </div>
+            </div>
+            
+            <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; border-left: 4px solid #007C27;">
+                
+                <div style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #00512A; margin-bottom: 15px; border-bottom: 2px solid #00512A; padding-bottom: 10px;">🏘️ QUANTIDADE DE FAMÍLIAS</h4>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>📥 DADOS DE ENTRADA:</strong><br>
+                        • Base IBGE: 8.000 famílias<br>
+                        • Raio selecionado: ${data.radiusKm} km<br>
+                        • Multiplicador para ${data.radiusKm}km: ${data.radiusKm === 2 ? '0.3 (30%)' : data.radiusKm === 5 ? '0.7 (70%)' : '1.0 (100%)'}
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>⚙️ PROCESSAMENTO:</strong><br>
+                        Passo 1: 8.000 × ${data.radiusKm === 2 ? '0.3' : data.radiusKm === 5 ? '0.7' : '1.0'} = ${Math.round(8000 * (data.radiusKm === 2 ? 0.3 : data.radiusKm === 5 ? 0.7 : 1.0)).toLocaleString('pt-BR')}<br>
+                        Passo 2: Aplicar variação de densidade (±20%)<br>
+                        Passo 3: ${Math.round(8000 * (data.radiusKm === 2 ? 0.3 : data.radiusKm === 5 ? 0.7 : 1.0)).toLocaleString('pt-BR')} × (0.8 a 1.2) = resultado ajustado
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;">
+                        <strong>📤 RESULTADO FINAL:</strong><br>
+                        <span style="color: #007C27; font-size: 1.5em; font-weight: bold;">${data.families.toLocaleString('pt-BR')} famílias</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #00512A; margin-bottom: 15px; border-bottom: 2px solid #00512A; padding-bottom: 10px;">💵 RENDA MÉDIA FAMILIAR</h4>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>📥 DADOS DE ENTRADA:</strong><br>
+                        • Distribuição de renda por faixas (baseada em perfil regional)<br>
+                        • Pontos médios das faixas: R$ 1.500 | R$ 3.000 | R$ 6.000 | R$ 11.500 | R$ 20.000
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>⚙️ PROCESSAMENTO:</strong><br>
+                        ${(() => {
+                            const baseIncome = data.avgFamilyIncome;
+                            let dist;
+                            if (baseIncome > 6000) dist = data.radiusKm === 2 ? [8, 15, 32, 28, 17] : data.radiusKm === 5 ? [12, 20, 33, 23, 12] : [18, 25, 30, 18, 9];
+                            else if (baseIncome > 4000) dist = data.radiusKm === 2 ? [18, 28, 30, 18, 6] : data.radiusKm === 5 ? [25, 30, 27, 14, 4] : [32, 30, 24, 11, 3];
+                            else if (baseIncome > 2500) dist = data.radiusKm === 2 ? [35, 32, 22, 9, 2] : data.radiusKm === 5 ? [42, 30, 19, 7, 2] : [48, 28, 16, 6, 2];
+                            else dist = data.radiusKm === 2 ? [58, 25, 12, 4, 1] : data.radiusKm === 5 ? [62, 23, 10, 4, 1] : [65, 22, 9, 3, 1];
+                            
+                            const calc1 = dist[0] * 1500;
+                            const calc2 = dist[1] * 3000;
+                            const calc3 = dist[2] * 6000;
+                            const calc4 = dist[3] * 11500;
+                            const calc5 = dist[4] * 20000;
+                            const total = calc1 + calc2 + calc3 + calc4 + calc5;
+                            
+                            return `Faixa 1: ${dist[0]}% × R$ 1.500 = R$ ${calc1.toLocaleString('pt-BR')}<br>
+                            Faixa 2: ${dist[1]}% × R$ 3.000 = R$ ${calc2.toLocaleString('pt-BR')}<br>
+                            Faixa 3: ${dist[2]}% × R$ 6.000 = R$ ${calc3.toLocaleString('pt-BR')}<br>
+                            Faixa 4: ${dist[3]}% × R$ 11.500 = R$ ${calc4.toLocaleString('pt-BR')}<br>
+                            Faixa 5: ${dist[4]}% × R$ 20.000 = R$ ${calc5.toLocaleString('pt-BR')}<br>
+                            <strong>Soma:</strong> R$ ${total.toLocaleString('pt-BR')}<br>
+                            <strong>Média:</strong> R$ ${total.toLocaleString('pt-BR')} ÷ 100`;
+                        })()}
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;">
+                        <strong>📤 RESULTADO FINAL:</strong><br>
+                        <span style="color: #007C27; font-size: 1.5em; font-weight: bold;">R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #00512A; margin-bottom: 15px; border-bottom: 2px solid #00512A; padding-bottom: 10px;">👤 RENDA PER CAPITA</h4>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>📥 DADOS DE ENTRADA:</strong><br>
+                        • Renda média familiar: R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')}<br>
+                        • Tamanho médio da família (IBGE): 3.2 pessoas
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>⚙️ PROCESSAMENTO:</strong><br>
+                        R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} ÷ 3.2 pessoas = R$ ${(data.avgFamilyIncome / 3.2).toFixed(2)}
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;">
+                        <strong>📤 RESULTADO FINAL:</strong><br>
+                        <span style="color: #007C27; font-size: 1.5em; font-weight: bold;">R$ ${data.perCapitaIncome.toLocaleString('pt-BR')}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #00512A; margin-bottom: 15px; border-bottom: 2px solid #00512A; padding-bottom: 10px;">💰 POTENCIAL DE CONSUMO</h4>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>📥 DADOS DE ENTRADA:</strong><br>
+                        • Renda média familiar: R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')}<br>
+                        • Quantidade de famílias: ${data.families.toLocaleString('pt-BR')}<br>
+                        • Taxa de consumo (economia): 60% da renda
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>⚙️ PROCESSAMENTO:</strong><br>
+                        Passo 1: Consumo por família = R$ ${data.avgFamilyIncome.toLocaleString('pt-BR')} × 0.6 = R$ ${(data.avgFamilyIncome * 0.6).toLocaleString('pt-BR', {maximumFractionDigits: 0})}<br>
+                        Passo 2: Total = R$ ${(data.avgFamilyIncome * 0.6).toLocaleString('pt-BR', {maximumFractionDigits: 0})} × ${data.families.toLocaleString('pt-BR')}<br>
+                        Passo 3: = R$ ${data.potentialConsumption.toLocaleString('pt-BR', {maximumFractionDigits: 0})}
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;">
+                        <strong>📤 RESULTADO FINAL:</strong><br>
+                        <span style="color: #007C27; font-size: 1.5em; font-weight: bold;">R$ ${(data.potentialConsumption / 1000000).toFixed(2)}M / mês</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #00512A; margin-bottom: 15px; border-bottom: 2px solid #00512A; padding-bottom: 10px;">👥 DENSIDADE POPULACIONAL</h4>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>📥 DADOS DE ENTRADA:</strong><br>
+                        • Famílias: ${data.families.toLocaleString('pt-BR')}<br>
+                        • Pessoas por família: 2.5<br>
+                        • Raio: ${data.radiusKm} km
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>⚙️ PROCESSAMENTO:</strong><br>
+                        Passo 1: População = ${data.families.toLocaleString('pt-BR')} × 2.5 = ${(data.families * 2.5).toLocaleString('pt-BR')} pessoas<br>
+                        Passo 2: Área = π × ${data.radiusKm}² = ${(Math.PI * Math.pow(data.radiusKm, 2)).toFixed(2)} km²<br>
+                        Passo 3: Densidade = ${(data.families * 2.5).toLocaleString('pt-BR')} ÷ ${(Math.PI * Math.pow(data.radiusKm, 2)).toFixed(2)}
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;">
+                        <strong>📤 RESULTADO FINAL:</strong><br>
+                        <span style="color: #007C27; font-size: 1.5em; font-weight: bold;">${data.populationDensity.toLocaleString('pt-BR')} hab/km²</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #00512A; margin-bottom: 15px; border-bottom: 2px solid #00512A; padding-bottom: 10px;">🏢 CLASSES SOCIAIS</h4>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>📥 DADOS DE ENTRADA:</strong><br>
+                        • Total de famílias: ${data.families.toLocaleString('pt-BR')}<br>
+                        • Percentuais IBGE: A=6% | B=18% | C=50% | D=22% | E=4%
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>⚙️ PROCESSAMENTO:</strong><br>
+                        Classe A: ${data.families.toLocaleString('pt-BR')} × 6% = ${data.classA.toLocaleString('pt-BR')}<br>
+                        Classe B: ${data.families.toLocaleString('pt-BR')} × 18% = ${data.classB.toLocaleString('pt-BR')}<br>
+                        Classe C: ${data.families.toLocaleString('pt-BR')} × 50% = ${data.classC.toLocaleString('pt-BR')}<br>
+                        Classe D: ${data.families.toLocaleString('pt-BR')} × 22% = ${data.classD.toLocaleString('pt-BR')}<br>
+                        Classe E: ${data.families.toLocaleString('pt-BR')} × 4% = ${data.classE.toLocaleString('pt-BR')}
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;">
+                        <strong>📤 RESULTADO FINAL:</strong><br>
+                        A: <span style="color: #28a745; font-weight: bold;">${data.classA.toLocaleString('pt-BR')}</span> | 
+                        B: <span style="color: #007C27; font-weight: bold;">${data.classB.toLocaleString('pt-BR')}</span> | 
+                        C: <span style="color: #ffc107; font-weight: bold;">${data.classC.toLocaleString('pt-BR')}</span> | 
+                        D: <span style="color: #fd7e14; font-weight: bold;">${data.classD.toLocaleString('pt-BR')}</span> | 
+                        E: <span style="color: #dc3545; font-weight: bold;">${data.classE.toLocaleString('pt-BR')}</span>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 25px; background: white; padding: 20px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                    <h4 style="color: #00512A; margin-bottom: 15px; border-bottom: 2px solid #00512A; padding-bottom: 10px;">🏗️ POTENCIAL POR LINHA DE PRODUTO</h4>
+                    
+                    <div style="background: #e8f5e9; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>📥 DADOS DE ENTRADA:</strong><br>
+                        • Total de famílias: ${data.families.toLocaleString('pt-BR')}<br>
+                        • % adequação: Vitória=25% | Viver=35% | Vista=28% | INC=12%
+                    </div>
+                    
+                    <div style="background: #fff3e0; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                        <strong>⚙️ PROCESSAMENTO:</strong><br>
+                        Vitória: ${data.families.toLocaleString('pt-BR')} × 25% = ${data.empreendimentos.vitoria.toLocaleString('pt-BR')}<br>
+                        Viver: ${data.families.toLocaleString('pt-BR')} × 35% = ${data.empreendimentos.viver.toLocaleString('pt-BR')}<br>
+                        Vista: ${data.families.toLocaleString('pt-BR')} × 28% = ${data.empreendimentos.vista.toLocaleString('pt-BR')}<br>
+                        INC: ${data.families.toLocaleString('pt-BR')} × 12% = ${data.empreendimentos.inc.toLocaleString('pt-BR')}
+                    </div>
+                    
+                    <div style="background: #e3f2fd; padding: 15px; border-radius: 4px;">
+                        <strong>📤 RESULTADO FINAL:</strong><br>
+                        Vitória: <span style="font-weight: bold;">${data.empreendimentos.vitoria.toLocaleString('pt-BR')}</span> | 
+                        Viver: <span style="font-weight: bold;">${data.empreendimentos.viver.toLocaleString('pt-BR')}</span> | 
+                        Vista: <span style="font-weight: bold;">${data.empreendimentos.vista.toLocaleString('pt-BR')}</span> | 
+                        INC: <span style="font-weight: bold;">${data.empreendimentos.inc.toLocaleString('pt-BR')}</span>
+                    </div>
+                </div>
+                
             </div>
         </div>
         
@@ -2477,19 +2572,6 @@ function updateBestOpportunity(data) {
 }
 
 // Função para atualizar dados conforme o raio selecionado
-function toggleDicionario() {
-    const content = document.getElementById('dicionarioContent');
-    const arrow = document.getElementById('dicionarioArrow');
-    
-    if (content.style.display === 'none') {
-        content.style.display = 'block';
-        arrow.textContent = '▲';
-    } else {
-        content.style.display = 'none';
-        arrow.textContent = '▼';
-    }
-}
-
 function updateConsumoRadius(radius) {
     if (!currentConsumoData) return;
     const rendaAtual = currentConsumoData.avgFamilyIncome;
