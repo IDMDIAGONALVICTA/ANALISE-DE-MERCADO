@@ -2985,73 +2985,42 @@ function updateConsumoRadius(radius) {
 // Função de busca agora chama displayConsumoAnalysis diretamente em addSearchMarker
         
         
-// ===== FUNÇÃO PARA BUSCAR DADOS DA PLANILHA EM TEMPO REAL (CORRIGIDA) =====
+// ===== FUNÇÃO PARA BUSCAR DADOS VIA GOOGLE SHEETS API =====
 async function carregarDadosPlanilha() {
     try {
         console.log("📥 Carregando dados da planilha do Google Sheets...");
         
-        // URL da planilha em formato CSV
-        const urlPlanilha = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTCTgFtZ0xJiA8Hmi73AVuf1ZqAou-EjqCRQ1EpmzhWBPwp-uhgsUs0x3tgPIofgkHZIyuYuN5UQO3A/pub?gid=0&single=true&output=csv";
+        // ID da planilha e chave de API (usando URL pública)
+        const spreadsheetId = "2PACX-1vTCTgFtZ0xJiA8Hmi73AVuf1ZqAou-EjqCRQ1EpmzhWBPwp-uhgsUs0x3tgPIofgkHZIyuYuN5UQO3A";
         
-        const response = await fetch(urlPlanilha);
-        const csvText = await response.text();
+        // Usar a URL de exportação JSON do Google Sheets
+        const urlJSON = `https://docs.google.com/spreadsheets/d/e/${spreadsheetId}/gviz/tq?tqx=out:json`;
         
-        // Parser CSV melhorado
-        function parseCSV(csv) {
-            const rows = [];
-            let row = [];
-            let cell = '';
-            let insideQuotes = false;
-            
-            for (let i = 0; i < csv.length; i++) {
-                const char = csv[i];
-                const nextChar = csv[i + 1];
-                
-                if (char === '"') {
-                    if (insideQuotes && nextChar === '"') {
-                        cell += '"';
-                        i++;
-                    } else {
-                        insideQuotes = !insideQuotes;
-                    }
-                } else if (char === ',' && !insideQuotes) {
-                    row.push(cell.trim());
-                    cell = '';
-                } else if ((char === '\n' || char === '\r') && !insideQuotes) {
-                    if (cell || row.length > 0) {
-                        row.push(cell.trim());
-                        if (row.some(c => c)) rows.push(row);
-                        row = [];
-                        cell = '';
-                    }
-                    if (char === '\r' && nextChar === '\n') i++;
-                } else {
-                    cell += char;
-                }
-            }
-            
-            if (cell || row.length > 0) {
-                row.push(cell.trim());
-                if (row.some(c => c)) rows.push(row);
-            }
-            
-            return rows;
+        const response = await fetch(urlJSON);
+        const text = await response.text();
+        
+        // Remover o prefixo e sufixo que o Google adiciona
+        const jsonStr = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+        const data = JSON.parse(jsonStr);
+        
+        if (!data.table || !data.table.rows) {
+            throw new Error('Formato de dados inválido');
         }
         
-        const rows = parseCSV(csvText);
-        if (rows.length < 2) {
-            throw new Error('Planilha vazia ou inválida');
-        }
+        // Extrair headers
+        const headers = data.table.cols.map(col => col.label);
         
-        const headers = rows[0];
+        // Processar linhas
         const empreendimentos = [];
         
-        for (let i = 1; i < rows.length; i++) {
-            const valores = rows[i];
+        for (let i = 0; i < data.table.rows.length; i++) {
+            const row = data.table.rows[i];
             const obj = {};
             
+            // Mapear valores para headers
             for (let j = 0; j < headers.length; j++) {
-                obj[headers[j]] = valores[j] || '';
+                const value = row.c[j];
+                obj[headers[j]] = value ? value.v : '';
             }
             
             // Processar coordenadas
@@ -3059,31 +3028,41 @@ async function carregarDadosPlanilha() {
             let lon = obj['Longitude'];
             
             if (lat && lon) {
-                // Remover pontos de separação de milhares
-                lat = lat.replace(/\./g, '').replace(',', '.');
-                lon = lon.replace(/\./g, '').replace(',', '.');
+                // Converter para número
+                if (typeof lat === 'string') {
+                    lat = lat.replace(/\./g, '').replace(',', '.');
+                }
+                if (typeof lon === 'string') {
+                    lon = lon.replace(/\./g, '').replace(',', '.');
+                }
                 
                 lat = parseFloat(lat);
                 lon = parseFloat(lon);
                 
                 if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                    // Manter todos os campos originais
                     obj['Latitude'] = lat;
                     obj['Longitude'] = lon;
                     
-                    // Converter percentuais se existirem
+                    // Converter percentuais
                     if (obj['% VENDIDA']) {
-                        obj['% VENDIDA'] = parseFloat(obj['% VENDIDA'].replace('%', '')) / 100;
+                        const pct = parseFloat(obj['% VENDIDA']);
+                        obj['% VENDIDA'] = isNaN(pct) ? 0 : pct / 100;
+                    } else {
+                        obj['% VENDIDA'] = 0;
                     }
+                    
                     if (obj['% ESTOQUE']) {
-                        obj['% ESTOQUE'] = parseFloat(obj['% ESTOQUE'].replace('%', '')) / 100;
+                        const pct = parseFloat(obj['% ESTOQUE']);
+                        obj['% ESTOQUE'] = isNaN(pct) ? 0 : pct / 100;
+                    } else {
+                        obj['% ESTOQUE'] = 0;
                     }
                     
                     // Converter numéricos
-                    if (obj['VAGAS']) obj['VAGAS'] = parseInt(obj['VAGAS']) || 0;
-                    if (obj['UNIDADES']) obj['UNIDADES'] = parseInt(obj['UNIDADES']) || 0;
-                    if (obj['VENDAS']) obj['VENDAS'] = parseInt(obj['VENDAS']) || 0;
-                    if (obj['ESTOQUE']) obj['ESTOQUE'] = parseInt(obj['ESTOQUE']) || 0;
+                    obj['VAGAS'] = parseInt(obj['VAGAS']) || 0;
+                    obj['UNIDADES'] = parseInt(obj['UNIDADES']) || 0;
+                    obj['VENDAS'] = parseInt(obj['VENDAS']) || 0;
+                    obj['ESTOQUE'] = parseInt(obj['ESTOQUE']) || 0;
                     
                     empreendimentos.push(obj);
                 }
@@ -3091,25 +3070,23 @@ async function carregarDadosPlanilha() {
         }
         
         console.log(`✓ ${empreendimentos.length} empreendimentos carregados da planilha`);
-        console.log("Primeiro empreendimento:", empreendimentos[0]);
         
         if (empreendimentos.length === 0) {
-            throw new Error('Nenhum empreendimento válido encontrado');
+            console.warn('⚠️ Nenhum empreendimento válido encontrado');
+            return null;
         }
         
-        // Atualizar o array global
+        // Atualizar arrays globais
         window.empreendimentosRaw = empreendimentos;
-        
-        // Reprocessar para o formato esperado
-        const empreendimentosProcessados = empreendimentos.map(emp => ({
+        window.empreendimentos = empreendimentos.map(emp => ({
             ...emp,
             Latitude: emp.Latitude,
             Longitude: emp.Longitude
         }));
         
-        window.empreendimentos = empreendimentosProcessados;
-        
+        console.log("✓ Dados processados com sucesso");
         return empreendimentos;
+        
     } catch (error) {
         console.error('❌ Erro ao carregar dados da planilha:', error);
         console.log("⚠️ Usando dados locais (fallback)");
