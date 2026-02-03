@@ -2985,7 +2985,7 @@ function updateConsumoRadius(radius) {
 // Função de busca agora chama displayConsumoAnalysis diretamente em addSearchMarker
         
         
-// ===== FUNÇÃO PARA BUSCAR DADOS DA PLANILHA EM TEMPO REAL =====
+// ===== FUNÇÃO PARA BUSCAR DADOS DA PLANILHA EM TEMPO REAL (CORRIGIDA) =====
 async function carregarDadosPlanilha() {
     try {
         console.log("📥 Carregando dados da planilha do Google Sheets...");
@@ -2996,61 +2996,94 @@ async function carregarDadosPlanilha() {
         const response = await fetch(urlPlanilha);
         const csvText = await response.text();
         
-        // Converter CSV para array de objetos
-        const linhas = csvText.split('\n');
-        const headers = linhas[0].split(',').map(h => h.trim());
-        
-        const empreendimentos = [];
-        
-        for (let i = 1; i < linhas.length; i++) {
-            if (!linhas[i].trim()) continue;
+        // Parser CSV melhorado
+        function parseCSV(csv) {
+            const rows = [];
+            let row = [];
+            let cell = '';
+            let insideQuotes = false;
             
-            // Parse CSV com suporte a valores entre aspas
-            const valores = [];
-            let valor = '';
-            let dentroAspas = false;
-            
-            for (let j = 0; j < linhas[i].length; j++) {
-                const char = linhas[i][j];
+            for (let i = 0; i < csv.length; i++) {
+                const char = csv[i];
+                const nextChar = csv[i + 1];
                 
                 if (char === '"') {
-                    dentroAspas = !dentroAspas;
-                } else if (char === ',' && !dentroAspas) {
-                    valores.push(valor.trim());
-                    valor = '';
+                    if (insideQuotes && nextChar === '"') {
+                        cell += '"';
+                        i++;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === ',' && !insideQuotes) {
+                    row.push(cell.trim());
+                    cell = '';
+                } else if ((char === '\n' || char === '\r') && !insideQuotes) {
+                    if (cell || row.length > 0) {
+                        row.push(cell.trim());
+                        if (row.some(c => c)) rows.push(row);
+                        row = [];
+                        cell = '';
+                    }
+                    if (char === '\r' && nextChar === '\n') i++;
                 } else {
-                    valor += char;
+                    cell += char;
                 }
             }
-            valores.push(valor.trim());
             
-            // Criar objeto com dados da linha
+            if (cell || row.length > 0) {
+                row.push(cell.trim());
+                if (row.some(c => c)) rows.push(row);
+            }
+            
+            return rows;
+        }
+        
+        const rows = parseCSV(csvText);
+        if (rows.length < 2) {
+            throw new Error('Planilha vazia ou inválida');
+        }
+        
+        const headers = rows[0];
+        const empreendimentos = [];
+        
+        for (let i = 1; i < rows.length; i++) {
+            const valores = rows[i];
             const obj = {};
+            
             for (let j = 0; j < headers.length; j++) {
                 obj[headers[j]] = valores[j] || '';
             }
             
             // Processar coordenadas
-            let lat = obj['Latitude'] ? obj['Latitude'].replace(/\./g, '').replace(/,/, '.') : null;
-            let lon = obj['Longitude'] ? obj['Longitude'].replace(/\./g, '').replace(/,/, '.') : null;
+            let lat = obj['Latitude'];
+            let lon = obj['Longitude'];
             
             if (lat && lon) {
-                lat = parseFloat(lat[0] === '-' ? lat.substring(0, lat.length - 6) + '.' + lat.substring(lat.length - 6) : lat);
-                lon = parseFloat(lon[0] === '-' ? lon.substring(0, lon.length - 6) + '.' + lon.substring(lon.length - 6) : lon);
+                // Remover pontos de separação de milhares
+                lat = lat.replace(/\./g, '').replace(',', '.');
+                lon = lon.replace(/\./g, '').replace(',', '.');
                 
-                if (lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                    // Converter percentuais
-                    const pctVendida = obj['% VENDIDA'] ? parseFloat(obj['% VENDIDA'].replace('%', '')) / 100 : 0;
-                    const pctEstoque = obj['% ESTOQUE'] ? parseFloat(obj['% ESTOQUE'].replace('%', '')) / 100 : 0;
-                    
+                lat = parseFloat(lat);
+                lon = parseFloat(lon);
+                
+                if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                    // Manter todos os campos originais
                     obj['Latitude'] = lat;
                     obj['Longitude'] = lon;
-                    obj['% VENDIDA'] = pctVendida;
-                    obj['% ESTOQUE'] = pctEstoque;
-                    obj['VAGAS'] = parseInt(obj['VAGAS']) || 0;
-                    obj['UNIDADES'] = parseInt(obj['UNIDADES']) || 0;
-                    obj['VENDAS'] = parseInt(obj['VENDAS']) || 0;
-                    obj['ESTOQUE'] = parseInt(obj['ESTOQUE']) || 0;
+                    
+                    // Converter percentuais se existirem
+                    if (obj['% VENDIDA']) {
+                        obj['% VENDIDA'] = parseFloat(obj['% VENDIDA'].replace('%', '')) / 100;
+                    }
+                    if (obj['% ESTOQUE']) {
+                        obj['% ESTOQUE'] = parseFloat(obj['% ESTOQUE'].replace('%', '')) / 100;
+                    }
+                    
+                    // Converter numéricos
+                    if (obj['VAGAS']) obj['VAGAS'] = parseInt(obj['VAGAS']) || 0;
+                    if (obj['UNIDADES']) obj['UNIDADES'] = parseInt(obj['UNIDADES']) || 0;
+                    if (obj['VENDAS']) obj['VENDAS'] = parseInt(obj['VENDAS']) || 0;
+                    if (obj['ESTOQUE']) obj['ESTOQUE'] = parseInt(obj['ESTOQUE']) || 0;
                     
                     empreendimentos.push(obj);
                 }
@@ -3058,59 +3091,46 @@ async function carregarDadosPlanilha() {
         }
         
         console.log(`✓ ${empreendimentos.length} empreendimentos carregados da planilha`);
+        console.log("Primeiro empreendimento:", empreendimentos[0]);
+        
+        if (empreendimentos.length === 0) {
+            throw new Error('Nenhum empreendimento válido encontrado');
+        }
         
         // Atualizar o array global
-        empreendimentosRaw = empreendimentos;
+        window.empreendimentosRaw = empreendimentos;
         
-        // Reinicializar o mapa com os novos dados
-        reinicializarMapa();
-        
-        return empreendimentos;
-    } catch (error) {
-        console.error('❌ Erro ao carregar dados da planilha:', error);
-        alert('Erro ao carregar dados da planilha. Usando dados locais.');
-        return null;
-    }
-}
-
-function reinicializarMapa() {
-    try {
-        // Limpar marcadores antigos
-        markers.forEach(marker => {
-            if (map.hasLayer(marker)) {
-                map.removeLayer(marker);
-            }
-        });
-        markers = [];
-        
-        // Reprocessar empreendimentos
-        const empreendimentos = empreendimentosRaw.map(emp => ({
+        // Reprocessar para o formato esperado
+        const empreendimentosProcessados = empreendimentos.map(emp => ({
             ...emp,
             Latitude: emp.Latitude,
             Longitude: emp.Longitude
         }));
         
-        // Atualizar tabela
-        updateTable();
+        window.empreendimentos = empreendimentosProcessados;
         
-        // Adicionar novos marcadores
-        addMarkers();
-        
-        console.log("✓ Mapa reinicializado com dados atualizados");
+        return empreendimentos;
     } catch (error) {
-        console.error('Erro ao reinicializar mapa:', error);
+        console.error('❌ Erro ao carregar dados da planilha:', error);
+        console.log("⚠️ Usando dados locais (fallback)");
+        return null;
     }
 }
 
 
 window.onload = async function() {
+            console.log("🚀 Iniciando aplicação...");
+            
             // Carregar dados da planilha em tempo real
-            await carregarDadosPlanilha();
+            const dadosPlanilha = await carregarDadosPlanilha();
             
             // Se falhar, usar dados locais
-            if (!empreendimentosRaw || empreendimentosRaw.length === 0) {
+            if (!window.empreendimentos || window.empreendimentos.length === 0) {
                 console.log("⚠️ Usando dados locais (offline)");
+                window.empreendimentos = window.empreendimentosRaw || [];
             }
+            
+            console.log("Total de empreendimentos:", window.empreendimentos.length);
             
             initMap();
             initAmenidadesAnalysis();
