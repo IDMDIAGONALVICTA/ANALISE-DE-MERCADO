@@ -854,6 +854,9 @@
 .pdf-tip small { display:block; margin-top:6px; font-weight: 500; color:#1a237e; }
 </style>
 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
 </head>
 
 
@@ -2660,10 +2663,10 @@ function updateConsumoRadius(radius) {
 // Função de busca agora chama displayConsumoAnalysis diretamente em addSearchMarker
         
         
-// ===== FUNÇÃO PARA CARREGAR DADOS DA PLANILHA DO GOOGLE SHEETS =====
+// ===== FUNÇÃO PARA CARREGAR TODAS AS LINHAS DA PLANILHA DO GOOGLE SHEETS =====
 async function carregarDadosPlanilha() {
     try {
-        console.log("📥 Carregando dados da planilha do Google Sheets...");
+        console.log("📥 Carregando TODAS as linhas da planilha do Google Sheets...");
         
         // ID da planilha
         const spreadsheetId = "2PACX-1vTCTgFtZ0xJiA8Hmi73AVuf1ZqAou-EjqCRQ1EpmzhWBPwp-uhgsUs0x3tgPIofgkHZIyuYuN5UQO3A";
@@ -2677,104 +2680,100 @@ async function carregarDadosPlanilha() {
         
         const csvText = await response.text();
         
-        // Parser CSV simples
-        const lines = csvText.split('\n');
-        const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-        
-        const empreendimentos = [];
-        
-        for (let i = 1; i < lines.length; i++) {
-            if (!lines[i].trim()) continue;
-            
-            // Parser CSV que respeita aspas
-            const values = [];
-            let current = '';
-            let inQuotes = false;
-            
-            for (let j = 0; j < lines[i].length; j++) {
-                const char = lines[i][j];
-                const nextChar = lines[i][j + 1];
-                
-                if (char === '"') {
-                    if (inQuotes && nextChar === '"') {
-                        current += '"';
-                        j++;
-                    } else {
-                        inQuotes = !inQuotes;
+        // Usar Papa Parse para processar CSV
+        return new Promise((resolve, reject) => {
+            Papa.parse(csvText, {
+                header: true,
+                skipEmptyLines: false, // NÃO pular linhas vazias
+                complete: function(results) {
+                    console.log(`✓ Papa Parse processou ${results.data.length} linhas TOTAIS`);
+                    
+                    const empreendimentos = [];
+                    let processados = 0;
+                    let pulados = 0;
+                    
+                    // Processar TODAS as linhas
+                    for (let i = 0; i < results.data.length; i++) {
+                        const emp = results.data[i];
+                        
+                        // Pular se não tem dados mínimos
+                        if (!emp['EMPREENDIMENTO'] || emp['EMPREENDIMENTO'].trim() === '') {
+                            pulados++;
+                            continue;
+                        }
+                        
+                        // Validar coordenadas
+                        let lat = emp['Latitude'];
+                        let lon = emp['Longitude'];
+                        
+                        if (lat && lon) {
+                            // Limpar coordenadas
+                            lat = lat.replace(/\./g, '').replace(',', '.');
+                            lon = lon.replace(/\./g, '').replace(',', '.');
+                            
+                            lat = parseFloat(lat);
+                            lon = parseFloat(lon);
+                            
+                            if (!isNaN(lat) && !isNaN(lon)) {
+                                emp['Latitude'] = lat;
+                                emp['Longitude'] = lon;
+                                
+                                // Processar percentuais
+                                if (emp['% VENDIDA']) {
+                                    const pct = parseFloat(emp['% VENDIDA'].replace('%', '').trim());
+                                    emp['% VENDIDA'] = isNaN(pct) ? 0 : pct / 100;
+                                } else {
+                                    emp['% VENDIDA'] = 0;
+                                }
+                                
+                                if (emp['% ESTOQUE']) {
+                                    const pct = parseFloat(emp['% ESTOQUE'].replace('%', '').trim());
+                                    emp['% ESTOQUE'] = isNaN(pct) ? 0 : pct / 100;
+                                } else {
+                                    emp['% ESTOQUE'] = 0;
+                                }
+                                
+                                // Processar numéricos
+                                emp['VAGAS'] = parseInt(emp['VAGAS']) || 0;
+                                emp['UNIDADES'] = parseInt(emp['UNIDADES']) || 0;
+                                emp['VENDAS'] = parseInt(emp['VENDAS']) || 0;
+                                emp['ESTOQUE'] = parseInt(emp['ESTOQUE']) || 0;
+                                emp['Venda mês'] = parseInt(emp['Venda mês']) || 0;
+                                
+                                // Processar valores monetários
+                                const parseValue = (val) => {
+                                    if (!val) return 0;
+                                    val = val.replace('R$', '').trim().replace(/\./g, '').replace(',', '.');
+                                    return parseFloat(val) || 0;
+                                };
+                                
+                                emp['M² MÉDIO'] = parseValue(emp['M² MÉDIO']);
+                                emp['M² ESTOQUE'] = parseValue(emp['M² ESTOQUE']);
+                                emp['VGV Médio'] = parseValue(emp['VGV Médio']);
+                                emp['Avaliação Média'] = parseValue(emp['Avaliação Média']);
+                                emp['VGV Estoque'] = parseValue(emp['VGV Estoque']);
+                                
+                                empreendimentos.push(emp);
+                                processados++;
+                            }
+                        }
                     }
-                } else if (char === ',' && !inQuotes) {
-                    values.push(current.trim().replace(/^"|"$/g, ''));
-                    current = '';
-                } else {
-                    current += char;
+                    
+                    console.log(`✓ ${empreendimentos.length} empreendimentos carregados com sucesso`);
+                    console.log(`  - Processados: ${processados}`);
+                    console.log(`  - Pulados: ${pulados}`);
+                    if (empreendimentos.length > 0) {
+                        console.log("Primeiro empreendimento:", empreendimentos[0]);
+                        console.log("Último empreendimento:", empreendimentos[empreendimentos.length - 1]);
+                    }
+                    resolve(empreendimentos);
+                },
+                error: function(error) {
+                    console.error('❌ Erro ao processar CSV:', error);
+                    reject(error);
                 }
-            }
-            values.push(current.trim().replace(/^"|"$/g, ''));
-            
-            // Criar objeto
-            const emp = {};
-            for (let j = 0; j < headers.length; j++) {
-                emp[headers[j]] = values[j] || '';
-            }
-            
-            // Processar coordenadas
-            let lat = emp['Latitude'];
-            let lon = emp['Longitude'];
-            
-            if (lat && lon) {
-                // Limpar coordenadas
-                lat = lat.replace(/\./g, '').replace(',', '.');
-                lon = lon.replace(/\./g, '').replace(',', '.');
-                
-                lat = parseFloat(lat);
-                lon = parseFloat(lon);
-                
-                if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                    emp['Latitude'] = lat;
-                    emp['Longitude'] = lon;
-                    
-                    // Processar percentuais
-                    if (emp['% VENDIDA']) {
-                        const pct = parseFloat(emp['% VENDIDA'].replace('%', '').trim());
-                        emp['% VENDIDA'] = isNaN(pct) ? 0 : pct / 100;
-                    } else {
-                        emp['% VENDIDA'] = 0;
-                    }
-                    
-                    if (emp['% ESTOQUE']) {
-                        const pct = parseFloat(emp['% ESTOQUE'].replace('%', '').trim());
-                        emp['% ESTOQUE'] = isNaN(pct) ? 0 : pct / 100;
-                    } else {
-                        emp['% ESTOQUE'] = 0;
-                    }
-                    
-                    // Processar numéricos
-                    emp['VAGAS'] = parseInt(emp['VAGAS']) || 0;
-                    emp['UNIDADES'] = parseInt(emp['UNIDADES']) || 0;
-                    emp['VENDAS'] = parseInt(emp['VENDAS']) || 0;
-                    emp['ESTOQUE'] = parseInt(emp['ESTOQUE']) || 0;
-                    emp['Venda mês'] = parseInt(emp['Venda mês']) || 0;
-                    
-                    // Processar valores monetários
-                    const parseValue = (val) => {
-                        if (!val) return 0;
-                        val = val.replace('R$', '').trim().replace(/\./g, '').replace(',', '.');
-                        return parseFloat(val) || 0;
-                    };
-                    
-                    emp['M² MÉDIO'] = parseValue(emp['M² MÉDIO']);
-                    emp['M² ESTOQUE'] = parseValue(emp['M² ESTOQUE']);
-                    emp['VGV Médio'] = parseValue(emp['VGV Médio']);
-                    emp['Avaliação Média'] = parseValue(emp['Avaliação Média']);
-                    emp['VGV Estoque'] = parseValue(emp['VGV Estoque']);
-                    
-                    empreendimentos.push(emp);
-                }
-            }
-        }
-        
-        console.log(`✓ ${empreendimentos.length} empreendimentos carregados da planilha`);
-        return empreendimentos;
+            });
+        });
         
     } catch (error) {
         console.error('❌ Erro ao carregar dados da planilha:', error);
@@ -2787,7 +2786,7 @@ async function carregarDadosPlanilha() {
 window.onload = async function() {
             console.log("🚀 Iniciando aplicação...");
             
-            // Tentar carregar dados da planilha
+            // Tentar carregar TODAS as linhas da planilha
             const dadosPlanilha = await carregarDadosPlanilha();
             
             if (dadosPlanilha && dadosPlanilha.length > 0) {
