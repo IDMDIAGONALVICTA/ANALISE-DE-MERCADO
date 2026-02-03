@@ -2984,134 +2984,15 @@ function updateConsumoRadius(radius) {
 
 // Função de busca agora chama displayConsumoAnalysis diretamente em addSearchMarker
         
-        
-// ===== FUNÇÃO PARA BUSCAR DADOS VIA GOOGLE SHEETS API =====
-async function carregarDadosPlanilha() {
-    try {
-        console.log("📥 Carregando dados da planilha do Google Sheets...");
-        
-        // ID da planilha e chave de API (usando URL pública)
-        const spreadsheetId = "2PACX-1vTCTgFtZ0xJiA8Hmi73AVuf1ZqAou-EjqCRQ1EpmzhWBPwp-uhgsUs0x3tgPIofgkHZIyuYuN5UQO3A";
-        
-        // Usar a URL de exportação JSON do Google Sheets
-        const urlJSON = `https://docs.google.com/spreadsheets/d/e/${spreadsheetId}/gviz/tq?tqx=out:json`;
-        
-        const response = await fetch(urlJSON);
-        const text = await response.text();
-        
-        // Remover o prefixo e sufixo que o Google adiciona
-        const jsonStr = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
-        const data = JSON.parse(jsonStr);
-        
-        if (!data.table || !data.table.rows) {
-            throw new Error('Formato de dados inválido');
-        }
-        
-        // Extrair headers
-        const headers = data.table.cols.map(col => col.label);
-        
-        // Processar linhas
-        const empreendimentos = [];
-        
-        for (let i = 0; i < data.table.rows.length; i++) {
-            const row = data.table.rows[i];
-            const obj = {};
-            
-            // Mapear valores para headers
-            for (let j = 0; j < headers.length; j++) {
-                const value = row.c[j];
-                obj[headers[j]] = value ? value.v : '';
-            }
-            
-            // Processar coordenadas
-            let lat = obj['Latitude'];
-            let lon = obj['Longitude'];
-            
-            if (lat && lon) {
-                // Converter para número
-                if (typeof lat === 'string') {
-                    lat = lat.replace(/\./g, '').replace(',', '.');
-                }
-                if (typeof lon === 'string') {
-                    lon = lon.replace(/\./g, '').replace(',', '.');
-                }
-                
-                lat = parseFloat(lat);
-                lon = parseFloat(lon);
-                
-                if (!isNaN(lat) && !isNaN(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
-                    obj['Latitude'] = lat;
-                    obj['Longitude'] = lon;
-                    
-                    // Converter percentuais
-                    if (obj['% VENDIDA']) {
-                        const pct = parseFloat(obj['% VENDIDA']);
-                        obj['% VENDIDA'] = isNaN(pct) ? 0 : pct / 100;
-                    } else {
-                        obj['% VENDIDA'] = 0;
-                    }
-                    
-                    if (obj['% ESTOQUE']) {
-                        const pct = parseFloat(obj['% ESTOQUE']);
-                        obj['% ESTOQUE'] = isNaN(pct) ? 0 : pct / 100;
-                    } else {
-                        obj['% ESTOQUE'] = 0;
-                    }
-                    
-                    // Converter numéricos
-                    obj['VAGAS'] = parseInt(obj['VAGAS']) || 0;
-                    obj['UNIDADES'] = parseInt(obj['UNIDADES']) || 0;
-                    obj['VENDAS'] = parseInt(obj['VENDAS']) || 0;
-                    obj['ESTOQUE'] = parseInt(obj['ESTOQUE']) || 0;
-                    
-                    empreendimentos.push(obj);
-                }
-            }
-        }
-        
-        console.log(`✓ ${empreendimentos.length} empreendimentos carregados da planilha`);
-        
-        if (empreendimentos.length === 0) {
-            console.warn('⚠️ Nenhum empreendimento válido encontrado');
-            return null;
-        }
-        
-        // Atualizar arrays globais
-        window.empreendimentosRaw = empreendimentos;
-        window.empreendimentos = empreendimentos.map(emp => ({
-            ...emp,
-            Latitude: emp.Latitude,
-            Longitude: emp.Longitude
-        }));
-        
-        console.log("✓ Dados processados com sucesso");
-        return empreendimentos;
-        
-    } catch (error) {
-        console.error('❌ Erro ao carregar dados da planilha:', error);
-        console.log("⚠️ Usando dados locais (fallback)");
-        return null;
-    }
-}
-
-
-window.onload = async function() {
-            console.log("🚀 Iniciando aplicação...");
-            
-            // Carregar dados da planilha em tempo real
-            const dadosPlanilha = await carregarDadosPlanilha();
-            
-            // Se falhar, usar dados locais
-            if (!window.empreendimentos || window.empreendimentos.length === 0) {
-                console.log("⚠️ Usando dados locais (offline)");
-                window.empreendimentos = window.empreendimentosRaw || [];
-            }
-            
-            console.log("Total de empreendimentos:", window.empreendimentos.length);
+        window.onload = function() {
+            console.log("🚀 Iniciando aplicação com dados locais...");
+            console.log("Total de empreendimentos:", empreendimentosRaw.length);
             
             initMap();
             initAmenidadesAnalysis();
             updateTable();
+            
+            console.log("✓ Aplicação carregada com sucesso!");
         };
     </script>
 
