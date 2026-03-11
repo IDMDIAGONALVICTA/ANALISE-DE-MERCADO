@@ -1589,38 +1589,14 @@ streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 
         function addMarkers() {
             markers.forEach(marker => map.removeLayer(marker));
             markers = [];
-
-            const empreendimentosFiltrados = empreendimentos
-                .map((emp, index) => ({ emp, index }))
-                .filter(({ emp, index }) => {
-                    if (!shouldShowEmpreendimentoWithFilters(emp)) return false;
-                    const checkbox = document.querySelector(`input[data-index="${index}"]`);
-                    if (checkbox && !checkbox.checked) return false;
-                    if (selectedAmenidades.length > 0) {
-                        const empAmenidades = getAmenidadesList(emp);
-                        if (!selectedAmenidades.every(a => empAmenidades.includes(a))) return false;
-                    }
-                    return true;
-                });
-
-            // Para empreendimentos com registros repetidos por tipologia (ex.: 2, 2 a 3 e 3),
-            // o mapa deve considerar apenas a linha consolidada "2 a 3".
-            const tipologiasPorEmpreendimento = {};
-            empreendimentosFiltrados.forEach(({ emp }) => {
-                const nome = (emp.EMPREENDIMENTO || 'S/N').toString().trim();
-                const quartos = (emp['QTD.QUARTOS'] || '').toString().trim();
-                if (!tipologiasPorEmpreendimento[nome]) tipologiasPorEmpreendimento[nome] = new Set();
-                tipologiasPorEmpreendimento[nome].add(quartos);
-            });
-
-            const empreendimentosMapa = empreendimentosFiltrados.filter(({ emp }) => {
-                const nome = (emp.EMPREENDIMENTO || 'S/N').toString().trim();
-                const quartos = (emp['QTD.QUARTOS'] || '').toString().trim();
-                const tipologias = tipologiasPorEmpreendimento[nome] || new Set();
-                return tipologias.size <= 1 || quartos === '2 a 3';
-            });
-
-            empreendimentosMapa.forEach(({ emp }) => {
+            empreendimentos.forEach((emp, index) => {
+                if (!shouldShowEmpreendimentoWithFilters(emp)) return;
+                const checkbox = document.querySelector(`input[data-index="${index}"]`);
+                if (checkbox && !checkbox.checked) return;
+                if (selectedAmenidades.length > 0) {
+                    const empAmenidades = getAmenidadesList(emp);
+                    if (!selectedAmenidades.every(a => empAmenidades.includes(a))) return;
+                }
                 const logoUrl = empresaLogos[emp.EMPRESA] || '';
                 const icon = L.divIcon({
                     className: 'custom-marker',
@@ -1639,7 +1615,7 @@ streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 
                             <div style="display:flex; justify-content:space-between;"><span>🏠 Unidades:</span> <strong>${emp.UNIDADES ?? '-'}</strong></div>
                             <div style="display:flex; justify-content:space-between;"><span>📦 Estoque:</span> <strong>${emp.ESTOQUE ?? '-'}</strong></div>
                             <div style="display:flex; justify-content:space-between;"><span>💰 VGV Estoque:</span> <strong>${formatCurrency(emp['VGV Estoque'] || 0)}</strong></div>
-                            <div style="display:flex; justify-content:space-between;"><span>📈 VSO:</span> <strong>${((Number(emp.VSO) || 0) * 100).toFixed(1)}%</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>📈 VSO:</span> <strong>${(((Number(emp.VSO) || 0)) * 100).toFixed(1)}%</strong></div>
                             <div style="display:flex; justify-content:space-between;"><span>✅ % Vendida:</span> <strong>${(emp['% VENDIDA'] * 100).toFixed(1)}%</strong></div>
                             <div style="display:flex; justify-content:space-between;"><span>🗃️ % Estoque:</span> <strong>${(emp['% ESTOQUE'] * 100).toFixed(1)}%</strong></div>
                             <div style="display:flex; justify-content:space-between;"><span>🚗 Vagas:</span> <strong>${emp.VAGAS ?? '-'}</strong></div>
@@ -7603,26 +7579,30 @@ function renderVSOChart() {
         });
     }
 
-    // Agrupa por empreendimento (média VSO)
+    // Agrupa por empreendimento usando o VSO da base
+    // Sem filtro de quartos: para mix (2, 2 a 3, 3), já ficou somente a linha 2 a 3
+    // Com filtro de quartos: considera apenas as tipologias filtradas
     const vsoMap = {};
     dados.forEach(e => {
         const nome = e.EMPREENDIMENTO || 'S/N';
-        if (e.VSO != null) {
-            if (!vsoMap[nome]) vsoMap[nome] = { vendas: 0, unidades: 0 };
-            vsoMap[nome].vendas   += (e.VENDAS   || 0);
-            vsoMap[nome].unidades += (e.UNIDADES  || 0);
+        const vso = Number(e.VSO);
+        if (!Number.isNaN(vso)) {
+            if (!vsoMap[nome]) vsoMap[nome] = { somaVso: 0, qtd: 0 };
+            vsoMap[nome].somaVso += vso;
+            vsoMap[nome].qtd += 1;
         }
     });
 
     const labels = Object.keys(vsoMap).sort((a,b) => {
-        const va = vsoMap[a].unidades > 0 ? vsoMap[a].vendas / vsoMap[a].unidades : 0;
-        const vb = vsoMap[b].unidades > 0 ? vsoMap[b].vendas / vsoMap[b].unidades : 0;
+        const va = vsoMap[a].qtd > 0 ? vsoMap[a].somaVso / vsoMap[a].qtd : 0;
+        const vb = vsoMap[b].qtd > 0 ? vsoMap[b].somaVso / vsoMap[b].qtd : 0;
         return vb - va;
     });
     const values = labels.map(k =>
-        vsoMap[k].unidades > 0 ? parseFloat(((vsoMap[k].vendas / vsoMap[k].unidades) * 100).toFixed(1)) : 0
+        vsoMap[k].qtd > 0 ? parseFloat((((vsoMap[k].somaVso / vsoMap[k].qtd)) * 100).toFixed(1)) : 0
     );
-    const bgCores = values.map(v => v >= 70 ? '#00512A' : v >= 40 ? '#F57F17' : '#C62828');
+    const bgCores = values.map(() => '#00512A');
+    const hoverBgCores = values.map(() => '#C5F167');
 
     // Média geral visível
     const mediaBadge = document.getElementById('vsoMediaBadge');
@@ -7643,8 +7623,8 @@ function renderVSOChart() {
         label: 'Média (' + mediaVal + '%)',
         data: Array(labels.length).fill(mediaVal),
         type: 'line',
-        borderColor: '#FF6F00',
-        borderWidth: 2,
+        borderColor: '#007C27',
+        borderWidth: 3,
         borderDash: [6, 4],
         pointRadius: 0,
         fill: false,
@@ -7668,6 +7648,7 @@ function renderVSOChart() {
                     label: 'VSO (%)',
                     data: values,
                     backgroundColor: bgCores,
+                    hoverBackgroundColor: hoverBgCores,
                     borderRadius: 6,
                     borderSkipped: false
                 },
@@ -7680,9 +7661,12 @@ function renderVSOChart() {
             plugins: {
                 legend: {
                     display: mediaVal !== null,
-                    labels: { filter: item => item.datasetIndex === 1, font: { size: 12 }, color: '#FF6F00' }
+                    labels: { filter: item => item.datasetIndex === 1, font: { size: 12 }, color: '#007C27' }
                 },
                 tooltip: {
+                    backgroundColor: '#00512A',
+                    titleColor: '#ffffff',
+                    bodyColor: '#ffffff',
                     callbacks: {
                         label: ctx => ctx.datasetIndex === 0
                             ? ' VSO: ' + ctx.parsed.y + '%'
@@ -7923,14 +7907,14 @@ function renderFinChart() {
         return `rgb(${Math.round(0 + ratio*0)},${Math.round(81 + ratio*46)},${Math.round(42 - ratio*12)})`;
     });
     // Simpler: alternating greens
-    const greenPalette = ['#00512A','#007C27','#2e7d32','#388e3c','#43a047','#4caf50','#66bb6a','#81c784','#a5d6a7'];
+    const greenPalette = ['#0B5E3C']; // cor padrão do tema
     const bgFinal = values.map((_,i) => greenPalette[i % greenPalette.length]);
 
     const mediaDataset = mediaVal !== null ? [{
         label: 'Média',
         data: Array(labels.length).fill(mediaVal),
         type: 'line',
-        borderColor: '#FF6F00',
+        borderColor: '#0B5E3C',
         borderWidth: 2,
         borderDash: [6,4],
         pointRadius: 0,
