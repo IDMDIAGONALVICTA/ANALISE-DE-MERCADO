@@ -2701,7 +2701,62 @@ rel(bn.stops)["route"="bus"]->.routes;
             updateMapFromSelection();
         }
         
-        function updateMapFromSelection() { addMarkers(); }
+        function updateMapFromSelection() {
+            // Remove todos os marcadores do mapa
+            markers.forEach(marker => {
+                if (marker && map.hasLayer(marker)) {
+                    map.removeLayer(marker);
+                }
+            });
+            markers = [];
+            
+            // Reconstruir marcadores apenas dos selecionados
+            empreendimentos.forEach((emp, index) => {
+                if (!shouldShowEmpreendimentoWithFilters(emp)) return;
+                
+                // Verificar se o checkbox está marcado
+                const checkbox = document.querySelector(`input[data-index="${index}"]`);
+                if (!checkbox || !checkbox.checked) return; // Se não marcado, pular
+                
+                // Verificar filtro de amenidades
+                if (selectedAmenidades.length > 0) {
+                    const empAmenidades = getAmenidadesList(emp);
+                    if (!selectedAmenidades.every(a => empAmenidades.includes(a))) return;
+                }
+                
+                // Criar o marcador
+                const logoUrl = empresaLogos[emp.EMPRESA] || '';
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background: white; width: 44px; height: 44px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); padding: 6px; display: flex; align-items: center; justify-content: center;">
+                        ${logoUrl ? `<img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: contain;">` : `<span style="font-size: 9px; font-weight: bold;">${emp.EMPRESA.substring(0, 3)}</span>`}
+                    </div>`,
+                    iconSize: [44, 44],
+                    iconAnchor: [22, 22]
+                });
+                
+                const marker = L.marker([emp.Latitude, emp.Longitude], { icon: icon })
+                    .bindTooltip(`
+                        <div style="min-width: 220px; line-height: 1.6; font-size: 12px;">
+                            <div style="font-weight: 800; font-size: 13px; margin-bottom: 6px; border-bottom: 1px solid #ccc; padding-bottom: 4px;">${emp.EMPREENDIMENTO}</div>
+                            <div style="display:flex; justify-content:space-between;"><span>🏷️ Linha:</span> <strong>${emp['LINHA DE PRODUTO'] ?? '-'}</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>🏠 Unidades:</span> <strong>${emp.UNIDADES ?? '-'}</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>📦 Estoque:</span> <strong>${emp.ESTOQUE ?? '-'}</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>💰 VGV Estoque:</span> <strong>${formatCurrency(emp['VGV Estoque'] || 0)}</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>📈 VSO:</span> <strong>${(((Number(emp.VSO) || 0)) * 100).toFixed(1)}%</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>✅ % Vendida:</span> <strong>${(emp['% VENDIDA'] * 100).toFixed(1)}%</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>🗃️ % Estoque:</span> <strong>${(emp['% ESTOQUE'] * 100).toFixed(1)}%</strong></div>
+                            <div style="display:flex; justify-content:space-between;"><span>🚗 Vagas:</span> <strong>${emp.VAGAS ?? '-'}</strong></div>
+                        </div>
+                    `, { direction: 'top', sticky: true, opacity: 0.97, offset: [0, -25] });
+                
+                // Adicionar o marcador ao mapa
+                marker.addTo(map);
+                
+                // Adicionar o marcador ao array para controle
+                markers.push(marker);
+            });
+        }
         
         function exportToExcel() {
             // Coletar dados filtrados e visíveis na tabela
