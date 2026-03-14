@@ -138,6 +138,32 @@
             color: white;
         }
         
+        .markers-toggle {
+            position: absolute;
+            top: 10px;
+            left: 380px;
+            z-index: 1000;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 3px solid #007C27;
+            cursor: pointer;
+            font-weight: bold;
+            color: #007C27;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .markers-toggle:hover {
+            background: #F0F5CD;
+            transform: translateY(-2px);
+        }
+        .markers-toggle.active {
+            background: #007C27;
+            color: white;
+        }
+        
         .map-container.fullscreen {
             position: fixed;
             top: 0;
@@ -1003,6 +1029,10 @@
                 <span id="toggleText">Mapa</span>
             </button>
             <button class="fullscreen-toggle" id="fullscreenToggle" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+            <button class="markers-toggle" id="markersToggle" onclick="toggleMarkersVisibility()" title="Mostrar/Ocultar ícones dos empreendimentos">
+                <span id="markersIcon">📍</span>
+                <span id="markersText">Ícones</span>
+            </button>
             <div class="map-legend">
                 <h4>📌 Status de Vendas</h4>
                 <div class="legend-item">
@@ -1454,6 +1484,7 @@
         let map, markers = [], searchMarkers = [], currentFilter = 'all', selectedAmenidades = [], amenidadesChart = null;
         let lastSearchedLocation = null; // Armazenar a última localização pesquisada
         let lastSearchedName = ''; // Nome da localização pesquisada
+        let markersVisible = true; // Controlar visibilidade dos marcadores
         
 
         // Ícone "pino" laranja (usado no endereço pesquisado)
@@ -1541,6 +1572,34 @@ let cyclewayLayer = null, cyclewayVisible = false, cyclewayLoaded = false;
                 btn.classList.remove('active');
                 btn.textContent = '⛶ Fullscreen';
                 setTimeout(() => map.invalidateSize(), 100);
+            }
+        }
+        
+        function toggleMarkersVisibility() {
+            const btn = document.getElementById('markersToggle');
+            const icon = document.getElementById('markersIcon');
+            const text = document.getElementById('markersText');
+            
+            markersVisible = !markersVisible;
+            
+            if (markersVisible) {
+                markers.forEach(marker => {
+                    if (marker && !map.hasLayer(marker)) {
+                        marker.addTo(map);
+                    }
+                });
+                btn.classList.add('active');
+                icon.textContent = '📍';
+                text.textContent = 'Ícones';
+            } else {
+                markers.forEach(marker => {
+                    if (marker && map.hasLayer(marker)) {
+                        map.removeLayer(marker);
+                    }
+                });
+                btn.classList.remove('active');
+                icon.textContent = '🚫';
+                text.textContent = 'Ocultos';
             }
         }
         
